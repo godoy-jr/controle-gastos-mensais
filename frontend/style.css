@@ -9,7 +9,17 @@ button,input,select { font:inherit; }
 h1 { font-size:clamp(30px,5vw,48px); letter-spacing:-.055em; }
 .topbar p { margin-top:9px; color:var(--muted); }
 .top-actions { display:flex; align-items:flex-end; gap:10px; }
-.icon-button { display:grid; width:44px; height:44px; place-items:center; border:1px solid var(--border); border-radius:13px; background:var(--surface); color:var(--purple); font-size:18px; cursor:pointer; box-shadow:0 8px 20px rgba(31,28,73,.08); }
+.appearance-menu { position:relative; }
+.appearance-menu summary { display:flex; height:44px; align-items:center; gap:7px; padding:0 13px; border:1px solid var(--border); border-radius:13px; background:var(--surface); color:var(--purple); font-size:11px; font-weight:700; cursor:pointer; list-style:none; box-shadow:0 8px 20px rgba(31,28,73,.08); }
+.appearance-menu summary::-webkit-details-marker { display:none; }
+.appearance-menu[open] summary { border-color:rgba(108,92,231,.4); box-shadow:0 0 0 4px rgba(108,92,231,.08); }
+.appearance-popover { position:absolute; z-index:20; top:52px; right:0; width:250px; padding:12px; border:1px solid var(--border); border-radius:16px; background:var(--surface); box-shadow:0 22px 55px rgba(19,17,46,.2); }
+.popover-label { display:block; padding:4px 7px 9px; color:var(--muted); font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+.appearance-popover button { display:grid; width:100%; grid-template-columns:30px 1fr 12px; align-items:center; gap:8px; padding:10px; border:0; border-radius:11px; background:transparent; color:var(--navy); text-align:left; cursor:pointer; }
+.appearance-popover button:hover { background:rgba(108,92,231,.08); }
+.appearance-popover button>span:first-child { display:grid; width:30px; height:30px; place-items:center; border-radius:9px; background:rgba(108,92,231,.1); color:var(--purple); font-size:14px; }
+.appearance-popover button>span:nth-child(2) { font-size:11px; font-weight:700; }.appearance-popover small { display:block; margin-top:2px; color:var(--muted); font-size:9px; font-weight:500; }
+.appearance-popover i { width:9px; height:9px; border:2px solid #c7c4d4; border-radius:50%; }.appearance-popover button.active i { border-color:var(--purple); background:var(--purple); box-shadow:0 0 0 3px rgba(108,92,231,.12); }
 .month-field { display:grid; gap:7px; min-width:210px; color:var(--muted); font-size:12px; font-weight:600; }
 input,select { width:100%; padding:13px 14px; border:1px solid var(--border); border-radius:12px; outline:none; background:#fafafe; color:var(--navy); }
 input:focus,select:focus { border-color:rgba(108,92,231,.55); box-shadow:0 0 0 4px rgba(108,92,231,.08); }
@@ -75,6 +85,7 @@ body[data-theme="dark"] input,body[data-theme="dark"] select,body[data-theme="da
 body[data-theme="dark"] .type-switch{background:#17192a}body[data-theme="dark"] .type-switch input:checked+label{background:#2b2e49}
 body[data-theme="dark"] .health-score{background:linear-gradient(135deg,#282641,#202239)}body[data-theme="dark"] .insight{background:#1a1c30}
 body[data-theme="dark"] .transaction:hover{border-color:#555978}body[data-theme="dark"] .export-button{background:#292743}
+body[data-theme="dark"] .appearance-popover button:hover{background:#292743}
 
 @media(max-width:800px){.summary-grid{grid-template-columns:1fr}.workspace-grid{grid-template-columns:1fr}.history-panel,.evolution-panel{grid-column:auto}.topbar{align-items:flex-start;flex-direction:column}.top-actions,.month-field{width:100%}.month-field{flex:1}.history-tools{width:100%;flex-wrap:wrap}.search-field{flex:1}.search-field input{width:100%}}
 @media(max-width:520px){body{padding:24px 12px}.panel,.summary-card{padding:18px;border-radius:18px}.form-row,.goal-form{grid-template-columns:1fr}.goal-form .primary-button{grid-column:auto}.form-actions{flex-direction:column}.transaction{grid-template-columns:auto 1fr auto auto}.transaction-value{grid-column:2}.edit-button{grid-column:3;grid-row:1/3}.delete-button{grid-column:4;grid-row:1/3}.panel-heading{align-items:flex-start;flex-direction:column}.panel-heading select{width:100%}}

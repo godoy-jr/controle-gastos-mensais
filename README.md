@@ -17,7 +17,7 @@ SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a 
 - gráfico de evolução dos últimos seis meses;
 - busca por descrição ou categoria;
 - exportação das movimentações para CSV;
-- modos claro e escuro com preferência persistente;
+- aba de aparência com temas claro, escuro e automático, mantendo a preferência salva;
 - persistência local;
 - interface responsiva.
 

@@ -12,7 +12,8 @@ const elements = {
     submit: $("#submit-transaction"), cancelEdit: $("#cancel-edit"), month: $("#month-filter"), typeFilter: $("#type-filter"), search: $("#search-filter"),
     list: $("#transaction-list"), empty: $("#empty-state"), feedback: $("#form-feedback"), balance: $("#balance-value"),
     income: $("#income-value"), expense: $("#expense-value"), helper: $("#balance-helper"), incomeTrend: $("#income-trend"), expenseTrend: $("#expense-trend"),
-    flowChart: $("#flow-chart"), categoryChart: $("#category-chart"), evolutionChart: $("#evolution-chart"), themeToggle: $("#theme-toggle"), exportCsv: $("#export-csv"),
+    flowChart: $("#flow-chart"), categoryChart: $("#category-chart"), evolutionChart: $("#evolution-chart"), themeChoices: document.querySelectorAll("[data-theme-choice]"),
+    appearanceMenu: $(".appearance-menu"), exportCsv: $("#export-csv"),
     goalForm: $("#goal-form"), goalCategory: $("#goal-category"), goalLimit: $("#goal-limit"), goalList: $("#goal-list"), emptyGoals: $("#empty-goals"),
     healthScore: $("#health-score"), healthTitle: $("#health-title"), healthCopy: $("#health-copy"), insightList: $("#insight-list")
 };
@@ -196,8 +197,13 @@ function render() {
     updateSummary(); drawFlowChart(); drawCategoryChart(); drawEvolutionChart(); updateGoals(); updateInsights();
 }
 
-function applyTheme(theme) {
-    document.body.dataset.theme = theme; localStorage.setItem(THEME_KEY, theme); elements.themeToggle.textContent = theme === "dark" ? "☀" : "☾"; render();
+function resolvedTheme(preference) {
+    return preference === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : preference;
+}
+function applyTheme(preference, shouldRender = true) {
+    document.body.dataset.theme = resolvedTheme(preference); localStorage.setItem(THEME_KEY, preference);
+    elements.themeChoices.forEach(button => button.classList.toggle("active", button.dataset.themeChoice === preference));
+    if (shouldRender) render();
 }
 function exportCsv() {
     const items = visibleTransactions();
@@ -238,7 +244,10 @@ elements.goalForm.addEventListener("submit", event => {
 });
 elements.month.addEventListener("change", render); elements.typeFilter.addEventListener("change", render);
 elements.search.addEventListener("input", render); elements.exportCsv.addEventListener("click", exportCsv);
-elements.themeToggle.addEventListener("click", () => applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
+elements.themeChoices.forEach(button => button.addEventListener("click", () => { applyTheme(button.dataset.themeChoice); elements.appearanceMenu.open = false; }));
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if ((localStorage.getItem(THEME_KEY) || "system") === "system") applyTheme("system"); });
+document.addEventListener("click", event => { if (!elements.appearanceMenu.contains(event.target)) elements.appearanceMenu.open = false; });
+document.addEventListener("keydown", event => { if (event.key === "Escape") elements.appearanceMenu.open = false; });
 window.addEventListener("resize", () => { window.clearTimeout(window.chartTimer); window.chartTimer = window.setTimeout(() => { drawFlowChart(); drawCategoryChart(); drawEvolutionChart(); }, 120); });
 
-elements.month.value = currentMonth(); elements.date.value = today(); updateCategories(); populateGoalCategories(); document.body.dataset.theme = localStorage.getItem(THEME_KEY) || "light"; elements.themeToggle.textContent = document.body.dataset.theme === "dark" ? "☀" : "☾"; render();
+elements.month.value = currentMonth(); elements.date.value = today(); updateCategories(); populateGoalCategories(); applyTheme(localStorage.getItem(THEME_KEY) || "system", false); render();

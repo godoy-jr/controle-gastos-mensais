@@ -19,7 +19,15 @@
                 <p>Acompanhe entradas, saídas e escolhas ao longo do mês.</p>
             </div>
             <div class="top-actions">
-                <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">☾</button>
+                <details class="appearance-menu">
+                    <summary><span aria-hidden="true">◐</span> Aparência</summary>
+                    <div class="appearance-popover" role="group" aria-label="Escolher tema">
+                        <span class="popover-label">Tema da interface</span>
+                        <button type="button" data-theme-choice="light"><span aria-hidden="true">☀</span><span>Claro<small>Visual luminoso</small></span><i></i></button>
+                        <button type="button" data-theme-choice="dark"><span aria-hidden="true">☾</span><span>Escuro<small>Conforto visual</small></span><i></i></button>
+                        <button type="button" data-theme-choice="system"><span aria-hidden="true">◑</span><span>Automático<small>Segue o sistema</small></span><i></i></button>
+                    </div>
+                </details>
                 <label class="month-field">
                     <span>Mês de referência</span>
                     <input type="month" id="month-filter">
