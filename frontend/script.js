@@ -1,5 +1,6 @@
 const TRANSACTIONS_KEY = "fluxo.transactions";
 const GOALS_KEY = "fluxo.goals";
+const THEME_KEY = "fluxo.theme";
 const categories = {
     income: ["Salário", "Freelance", "Investimentos", "Vendas", "Outros"],
     expense: ["Moradia", "Alimentação", "Transporte", "Saúde", "Educação", "Lazer", "Assinaturas", "Outros"]
@@ -8,9 +9,10 @@ const colors = ["#6c5ce7", "#17b890", "#f4a261", "#ef6079", "#4ea8de", "#9b5de5"
 const $ = selector => document.querySelector(selector);
 const elements = {
     form: $("#transaction-form"), description: $("#description"), amount: $("#amount"), date: $("#date"), category: $("#category"),
-    submit: $("#submit-transaction"), cancelEdit: $("#cancel-edit"), month: $("#month-filter"), typeFilter: $("#type-filter"),
+    submit: $("#submit-transaction"), cancelEdit: $("#cancel-edit"), month: $("#month-filter"), typeFilter: $("#type-filter"), search: $("#search-filter"),
     list: $("#transaction-list"), empty: $("#empty-state"), feedback: $("#form-feedback"), balance: $("#balance-value"),
-    income: $("#income-value"), expense: $("#expense-value"), helper: $("#balance-helper"), flowChart: $("#flow-chart"), categoryChart: $("#category-chart"),
+    income: $("#income-value"), expense: $("#expense-value"), helper: $("#balance-helper"), incomeTrend: $("#income-trend"), expenseTrend: $("#expense-trend"),
+    flowChart: $("#flow-chart"), categoryChart: $("#category-chart"), evolutionChart: $("#evolution-chart"), themeToggle: $("#theme-toggle"), exportCsv: $("#export-csv"),
     goalForm: $("#goal-form"), goalCategory: $("#goal-category"), goalLimit: $("#goal-limit"), goalList: $("#goal-list"), emptyGoals: $("#empty-goals"),
     healthScore: $("#health-score"), healthTitle: $("#health-title"), healthCopy: $("#health-copy"), insightList: $("#insight-list")
 };
@@ -28,6 +30,7 @@ function persist() {
 function money(value) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value); }
 function currentMonth() { return new Date().toISOString().slice(0, 7); }
 function today() { return new Date().toISOString().slice(0, 10); }
+function shiftMonth(month, offset) { const [year, monthNumber] = month.split("-").map(Number); const date = new Date(year, monthNumber - 1 + offset, 1); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`; }
 function selectedType() { return elements.form.querySelector("input[name='type']:checked").value; }
 function createId() { return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`; }
 
@@ -47,14 +50,19 @@ function monthlyTransactions() {
     return transactions.filter(item => item.date.startsWith(elements.month.value));
 }
 function visibleTransactions() {
+    const searchTerm = elements.search.value.trim().toLocaleLowerCase("pt-BR");
     return monthlyTransactions()
         .filter(item => elements.typeFilter.value === "all" || item.type === elements.typeFilter.value)
+        .filter(item => !searchTerm || `${item.description} ${item.category}`.toLocaleLowerCase("pt-BR").includes(searchTerm))
         .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 // reduce: transforma todas as movimentações em totais consolidados.
 function totals() {
-    return monthlyTransactions().reduce((summary, item) => ({
+    return totalsForMonth(elements.month.value);
+}
+function totalsForMonth(month) {
+    return transactions.filter(item => item.date.startsWith(month)).reduce((summary, item) => ({
         ...summary,
         [item.type]: summary[item.type] + item.amount
     }), { income: 0, expense: 0 });
@@ -68,8 +76,15 @@ function categoryExpenses() {
 
 function updateSummary() {
     const total = totals(); const balance = total.income - total.expense;
+    const previous = totalsForMonth(shiftMonth(elements.month.value, -1));
     elements.income.textContent = money(total.income); elements.expense.textContent = money(total.expense); elements.balance.textContent = money(balance);
     elements.helper.textContent = balance >= 0 ? "Seu mês está com saldo positivo" : "As saídas ultrapassaram as entradas";
+    elements.incomeTrend.textContent = comparisonText(total.income, previous.income, "receitas");
+    elements.expenseTrend.textContent = comparisonText(total.expense, previous.expense, "despesas");
+}
+function comparisonText(current, previous, label) {
+    if (!previous) return `${label[0].toUpperCase() + label.slice(1)} no período`;
+    const variation = Math.round(((current - previous) / previous) * 100); return `${variation >= 0 ? "↑" : "↓"} ${Math.abs(variation)}% vs. mês anterior`;
 }
 
 function actionButton(action, label, symbol, className) {
@@ -91,6 +106,8 @@ function prepareCanvas(canvas) {
     canvas.width = width * ratio; canvas.height = height * ratio;
     const context = canvas.getContext("2d"); context.scale(ratio, ratio); context.clearRect(0, 0, width, height); return { context, width };
 }
+function canvasTextColor() { return document.body.dataset.theme === "dark" ? "#f5f4ff" : "#15172d"; }
+function canvasMutedColor() { return document.body.dataset.theme === "dark" ? "#a7a7ba" : "#74758a"; }
 function drawFlowChart() {
     const { context: ctx, width } = prepareCanvas(elements.flowChart); const total = totals(); const max = Math.max(total.income, total.expense, 1);
     const bars = [{ label: "Entradas", value: total.income, color: "#17b890" }, { label: "Saídas", value: total.expense, color: "#ef6079" }];
@@ -98,19 +115,30 @@ function drawFlowChart() {
     bars.forEach((bar, index) => {
         const barWidth = Math.min(110, width / 4); const x = width * (index ? .65 : .35) - barWidth / 2; const barHeight = (bar.value / max) * 145;
         ctx.fillStyle = "#eeedf4"; ctx.beginPath(); ctx.roundRect(x, 42, barWidth, 150, 14); ctx.fill(); ctx.fillStyle = bar.color; ctx.beginPath(); ctx.roundRect(x, 192 - barHeight, barWidth, barHeight, 14); ctx.fill();
-        ctx.fillStyle = "#15172d"; ctx.fillText(bar.label, x + barWidth / 2, 218); ctx.fillStyle = "#74758a"; ctx.font = "500 11px Inter"; ctx.fillText(money(bar.value), x + barWidth / 2, 238); ctx.font = "600 12px Inter";
+        ctx.fillStyle = canvasTextColor(); ctx.fillText(bar.label, x + barWidth / 2, 218); ctx.fillStyle = canvasMutedColor(); ctx.font = "500 11px Inter"; ctx.fillText(money(bar.value), x + barWidth / 2, 238); ctx.font = "600 12px Inter";
     });
 }
 function drawCategoryChart() {
     const { context: ctx, width } = prepareCanvas(elements.categoryChart); const entries = Object.entries(categoryExpenses()).sort((a, b) => b[1] - a[1]);
     const total = entries.reduce((sum, [, value]) => sum + value, 0);
-    if (!total) { ctx.fillStyle = "#74758a"; ctx.font = "500 12px Inter"; ctx.textAlign = "center"; ctx.fillText("Registre despesas para visualizar a distribuição", width / 2, 132); return; }
+    if (!total) { ctx.fillStyle = canvasMutedColor(); ctx.font = "500 12px Inter"; ctx.textAlign = "center"; ctx.fillText("Registre despesas para visualizar a distribuição", width / 2, 132); return; }
     const centerX = Math.min(width * .32, 165); const centerY = 125; let angle = -Math.PI / 2;
     entries.forEach(([label, value], index) => {
         const slice = (value / total) * Math.PI * 2; ctx.beginPath(); ctx.arc(centerX, centerY, 78, angle, angle + slice); ctx.arc(centerX, centerY, 43, angle + slice, angle, true); ctx.closePath(); ctx.fillStyle = colors[index % colors.length]; ctx.fill(); angle += slice;
-        if (index < 5) { const y = 65 + index * 31; ctx.fillRect(width * .58, y - 9, 10, 10); ctx.fillStyle = "#15172d"; ctx.font = "600 11px Inter"; ctx.textAlign = "left"; ctx.fillText(label, width * .58 + 17, y); ctx.fillStyle = colors[index % colors.length]; }
+        if (index < 5) { const y = 65 + index * 31; ctx.fillRect(width * .58, y - 9, 10, 10); ctx.fillStyle = canvasTextColor(); ctx.font = "600 11px Inter"; ctx.textAlign = "left"; ctx.fillText(label, width * .58 + 17, y); ctx.fillStyle = colors[index % colors.length]; }
     });
-    ctx.fillStyle = "#15172d"; ctx.font = "700 14px Inter"; ctx.textAlign = "center"; ctx.fillText(money(total), centerX, centerY + 5);
+    ctx.fillStyle = canvasTextColor(); ctx.font = "700 14px Inter"; ctx.textAlign = "center"; ctx.fillText(money(total), centerX, centerY + 5);
+}
+
+function drawEvolutionChart() {
+    const { context: ctx, width } = prepareCanvas(elements.evolutionChart); const months = Array.from({ length: 6 }, (_, index) => shiftMonth(elements.month.value, index - 5));
+    const series = months.map(month => ({ month, ...totalsForMonth(month) })); const max = Math.max(...series.flatMap(item => [item.income, item.expense]), 1);
+    const left = 42; const right = width - 20; const top = 30; const bottom = 205; const step = (right - left) / 5;
+    ctx.strokeStyle = document.body.dataset.theme === "dark" ? "#343750" : "#e9e7f1"; ctx.lineWidth = 1;
+    for (let line = 0; line < 4; line += 1) { const y = top + ((bottom - top) / 3) * line; ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke(); }
+    const drawLine = (key, color) => { ctx.beginPath(); series.forEach((item, index) => { const x = left + step * index; const y = bottom - (item[key] / max) * (bottom - top); index ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.stroke(); series.forEach((item, index) => { const x = left + step * index; const y = bottom - (item[key] / max) * (bottom - top); ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); }); };
+    drawLine("income", "#17b890"); drawLine("expense", "#ef6079"); ctx.fillStyle = canvasMutedColor(); ctx.font = "500 10px Inter"; ctx.textAlign = "center";
+    series.forEach((item, index) => { const label = new Date(`${item.month}-02T12:00:00`).toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""); ctx.fillText(label, left + step * index, 232); });
 }
 
 function goalElement(goal) {
@@ -165,7 +193,19 @@ function render() {
     const visible = visibleTransactions();
     // map + spread: cria e insere uma nova coleção de elementos no DOM.
     elements.list.replaceChildren(...visible.map(transactionElement)); elements.empty.hidden = visible.length > 0;
-    updateSummary(); drawFlowChart(); drawCategoryChart(); updateGoals(); updateInsights();
+    updateSummary(); drawFlowChart(); drawCategoryChart(); drawEvolutionChart(); updateGoals(); updateInsights();
+}
+
+function applyTheme(theme) {
+    document.body.dataset.theme = theme; localStorage.setItem(THEME_KEY, theme); elements.themeToggle.textContent = theme === "dark" ? "☀" : "☾"; render();
+}
+function exportCsv() {
+    const items = visibleTransactions();
+    if (!items.length) { elements.feedback.textContent = "Não há movimentações para exportar."; return; }
+    const escapeCell = value => `"${String(value).replaceAll('"', '""')}"`;
+    const rows = [["Data", "Tipo", "Descrição", "Categoria", "Valor"], ...items.map(item => [item.date, item.type === "income" ? "Entrada" : "Saída", item.description, item.category, item.amount.toFixed(2)])];
+    const csv = `\uFEFF${rows.map(row => row.map(escapeCell).join(";")).join("\n")}`; const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = `fluxo-${elements.month.value}.csv`; link.click(); URL.revokeObjectURL(url);
 }
 
 elements.form.addEventListener("change", event => { if (event.target.name === "type") updateCategories(); });
@@ -197,6 +237,8 @@ elements.goalForm.addEventListener("submit", event => {
     persist(); elements.goalForm.reset(); render();
 });
 elements.month.addEventListener("change", render); elements.typeFilter.addEventListener("change", render);
-window.addEventListener("resize", () => { window.clearTimeout(window.chartTimer); window.chartTimer = window.setTimeout(() => { drawFlowChart(); drawCategoryChart(); }, 120); });
+elements.search.addEventListener("input", render); elements.exportCsv.addEventListener("click", exportCsv);
+elements.themeToggle.addEventListener("click", () => applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark"));
+window.addEventListener("resize", () => { window.clearTimeout(window.chartTimer); window.chartTimer = window.setTimeout(() => { drawFlowChart(); drawCategoryChart(); drawEvolutionChart(); }, 120); });
 
-elements.month.value = currentMonth(); elements.date.value = today(); updateCategories(); populateGoalCategories(); render();
+elements.month.value = currentMonth(); elements.date.value = today(); updateCategories(); populateGoalCategories(); document.body.dataset.theme = localStorage.getItem(THEME_KEY) || "light"; elements.themeToggle.textContent = document.body.dataset.theme === "dark" ? "☀" : "☾"; render();

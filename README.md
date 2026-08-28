@@ -13,6 +13,11 @@ SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a 
 - metas mensais de gastos por categoria;
 - pontuação de saúde financeira;
 - assistente local com recomendações personalizadas;
+- comparação com o mês anterior;
+- gráfico de evolução dos últimos seis meses;
+- busca por descrição ou categoria;
+- exportação das movimentações para CSV;
+- modos claro e escuro com preferência persistente;
 - persistência local;
 - interface responsiva.
 

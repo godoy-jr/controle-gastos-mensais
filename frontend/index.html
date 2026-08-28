@@ -18,10 +18,13 @@
                 <h1>Seu dinheiro, com clareza.</h1>
                 <p>Acompanhe entradas, saídas e escolhas ao longo do mês.</p>
             </div>
-            <label class="month-field">
-                <span>Mês de referência</span>
-                <input type="month" id="month-filter">
-            </label>
+            <div class="top-actions">
+                <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema" title="Alternar tema">☾</button>
+                <label class="month-field">
+                    <span>Mês de referência</span>
+                    <input type="month" id="month-filter">
+                </label>
+            </div>
         </header>
 
         <section class="summary-grid" aria-label="Resumo financeiro">
@@ -33,12 +36,12 @@
             <article class="summary-card income-card">
                 <span class="card-label">Entradas</span>
                 <strong id="income-value">R$ 0,00</strong>
-                <span class="trend positive">↑ Receitas no período</span>
+                <span class="trend positive" id="income-trend">↑ Receitas no período</span>
             </article>
             <article class="summary-card expense-card">
                 <span class="card-label">Saídas</span>
                 <strong id="expense-value">R$ 0,00</strong>
-                <span class="trend negative">↓ Despesas no período</span>
+                <span class="trend negative" id="expense-trend">↓ Despesas no período</span>
             </article>
         </section>
 
@@ -104,10 +107,22 @@
                 <p class="privacy-note">Seus dados são analisados apenas neste navegador.</p>
             </article>
 
+            <article class="panel evolution-panel">
+                <div class="panel-heading">
+                    <div><span class="eyebrow dark">Histórico visual</span><h2>Evolução dos últimos 6 meses</h2></div>
+                    <div class="chart-legend"><span class="legend-income">Entradas</span><span class="legend-expense">Saídas</span></div>
+                </div>
+                <canvas id="evolution-chart" width="1080" height="300" aria-label="Gráfico de evolução dos últimos seis meses"></canvas>
+            </article>
+
             <article class="panel history-panel">
                 <div class="panel-heading">
                     <div><span class="eyebrow dark">Movimentações</span><h2>Histórico mensal</h2></div>
-                    <select id="type-filter" aria-label="Filtrar movimentações"><option value="all">Todas</option><option value="income">Entradas</option><option value="expense">Saídas</option></select>
+                    <div class="history-tools">
+                        <label class="search-field"><span aria-hidden="true">⌕</span><input id="search-filter" type="search" placeholder="Buscar movimentação" aria-label="Buscar movimentação"></label>
+                        <select id="type-filter" aria-label="Filtrar movimentações"><option value="all">Todas</option><option value="income">Entradas</option><option value="expense">Saídas</option></select>
+                        <button class="export-button" id="export-csv" type="button">Exportar CSV</button>
+                    </div>
                 </div>
                 <div class="transaction-list" id="transaction-list"></div>
                 <div class="empty-state" id="empty-state"><span>✦</span><strong>Nenhuma movimentação neste período</strong><p>Use o formulário para registrar sua primeira entrada ou saída.</p></div>
