@@ -98,7 +98,14 @@ function transactionElement(item) {
     const info = document.createElement("div"); const title = document.createElement("h3"); title.textContent = item.description;
     const detail = document.createElement("p"); detail.textContent = `${item.category} • ${new Date(`${item.date}T12:00:00`).toLocaleDateString("pt-BR")}`; info.append(title, detail);
     const value = document.createElement("strong"); value.className = `transaction-value ${item.type}`; value.textContent = `${item.type === "income" ? "+" : "-"} ${money(item.amount)}`;
-    article.append(icon, info, value, actionButton("edit", `Editar ${item.description}`, "✎", "edit-button"), actionButton("delete", `Remover ${item.description}`, "✕", "delete-button"));
+    article.append(
+        icon,
+        info,
+        value,
+        actionButton("duplicate", `Duplicar ${item.description}`, "⧉", "duplicate-button"),
+        actionButton("edit", `Editar ${item.description}`, "✎", "edit-button"),
+        actionButton("delete", `Remover ${item.description}`, "✕", "delete-button")
+    );
     return article;
 }
 
@@ -190,6 +197,15 @@ function startEditing(id) {
     elements.submit.textContent = "Salvar alterações"; elements.cancelEdit.hidden = false; elements.form.scrollIntoView({ behavior: "smooth", block: "center" }); elements.description.focus();
 }
 
+function prepareDuplicate(id) {
+    const item = transactions.find(transaction => transaction.id === id); if (!item) return;
+    editingId = null; elements.form.querySelector(`#type-${item.type}`).checked = true; updateCategories(item.category);
+    elements.description.value = item.description; elements.amount.value = item.amount; elements.date.value = today();
+    elements.submit.textContent = "Adicionar cópia"; elements.cancelEdit.hidden = false;
+    elements.feedback.textContent = "Revise os dados e confirme para criar uma nova movimentação.";
+    elements.form.scrollIntoView({ behavior: "smooth", block: "center" }); elements.description.focus();
+}
+
 function render() {
     const visible = visibleTransactions();
     // map + spread: cria e insere uma nova coleção de elementos no DOM.
@@ -231,6 +247,7 @@ elements.form.addEventListener("submit", event => {
 elements.cancelEdit.addEventListener("click", resetTransactionForm);
 elements.list.addEventListener("click", event => {
     const button = event.target.closest("[data-action]"); if (!button) return; const id = button.closest(".transaction").dataset.id;
+    if (button.dataset.action === "duplicate") prepareDuplicate(id);
     if (button.dataset.action === "edit") startEditing(id);
     if (button.dataset.action === "delete") { transactions = transactions.filter(item => item.id !== id); if (editingId === id) resetTransactionForm(); persist(); render(); }
 });

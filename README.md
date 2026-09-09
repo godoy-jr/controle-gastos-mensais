@@ -5,6 +5,7 @@ SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a 
 ## Primeira versão
 
 - Cadastro, edição e remoção de receitas e despesas;
+- duplicação assistida de movimentações recorrentes, com revisão antes de salvar;
 - categorias dinâmicas por tipo;
 - filtro por mês e tipo;
 - resumo de saldo, entradas e saídas;
