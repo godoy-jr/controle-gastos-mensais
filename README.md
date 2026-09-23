@@ -2,6 +2,10 @@
 
 SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a distribuição dos gastos.
 
+## Aplicação publicada
+
+[Abrir o Controle de Gastos](https://godoy-jr.github.io/controle-gastos-mensais/)
+
 ## Primeira versão
 
 - Cadastro, edição e remoção de receitas e despesas;
