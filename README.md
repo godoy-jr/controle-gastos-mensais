@@ -26,14 +26,28 @@ SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a 
 - persistência local;
 - interface responsiva.
 
-## Conceitos de JavaScript
+## Tecnologias
 
-O projeto aplica spread operator, `map`, `filter` e `reduce` para atualizar dados sem mutações desnecessárias, filtrar períodos, consolidar valores e renderizar componentes.
+- React para a interface e gerenciamento de estado;
+- Vite para desenvolvimento local e geração da versão de produção.
 
 ## Análise inteligente
 
 O assistente utiliza regras explicáveis para avaliar saldo, taxa de economia, maior categoria de gastos e cumprimento das metas. Todo o processamento acontece localmente, sem transmitir dados financeiros.
 
-## Como executar
+## Como executar localmente
 
-Abra `frontend/index.html` em um navegador moderno. Não há dependências externas de JavaScript.
+Requer Node.js 22 ou superior.
+
+```bash
+npm ci
+npm run dev
+```
+
+Para validar a versão de produção:
+
+```bash
+npm run build
+```
+
+O GitHub Actions gera e publica automaticamente `frontend/dist` no GitHub Pages quando há um push para a branch `main`.
