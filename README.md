@@ -24,6 +24,8 @@ SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a 
 - exportação das movimentações para CSV;
 - aba de aparência com temas claro, escuro e automático, mantendo a preferência salva;
 - persistência local;
+- consulta de cotações B3 de ações, ETFs e FIIs via brapi.dev;
+- carteira local com preço médio, valor atual e lucro/prejuízo estimado;
 - interface responsiva.
 
 ## Tecnologias
@@ -34,6 +36,10 @@ SPA para registrar entradas e saídas, acompanhar o saldo mensal e visualizar a 
 ## Análise inteligente
 
 O assistente utiliza regras explicáveis para avaliar saldo, taxa de economia, maior categoria de gastos e cumprimento das metas. Todo o processamento acontece localmente, sem transmitir dados financeiros.
+
+## Cotações e carteira
+
+A busca e as cotações usam a API pública da [brapi.dev](https://brapi.dev/), sem chave de API no navegador. A carteira (até 8 ativos) fica salva no armazenamento local do navegador. No plano gratuito, a API informa atualização de cotações em intervalos de até 30 minutos; a aplicação consulta a carteira automaticamente a cada 30 minutos. Os valores de lucro/prejuízo são estimativas sobre o preço médio informado e não incluem taxas, impostos ou proventos.
 
 ## Como executar localmente
 

@@ -80,6 +80,47 @@ canvas { display:block; width:100%; height:260px; }
 .score-ring { display:grid; width:64px; height:64px; flex:0 0 64px; place-items:center; border:7px solid #dcd6ff; border-top-color:var(--purple); border-radius:50%; color:var(--purple); font:800 16px "Roboto Mono",monospace; }.health-score strong{display:block;margin-bottom:5px;font-size:13px}.health-score p{color:var(--muted);font-size:11px;line-height:1.5}
 .insight-list { display:grid; gap:9px; margin-top:15px; }.insight { display:flex; gap:10px; padding:12px; border:1px solid var(--border); border-radius:13px; color:var(--muted); font-size:11px; line-height:1.5; }.insight span{color:var(--purple);font-size:15px}.privacy-note{margin-top:12px;color:#aaa6b7;font-size:9px;text-align:center}
 .empty-state { display:grid; justify-items:center; gap:7px; padding:38px; color:var(--muted); text-align:center; }.empty-state[hidden]{display:none}.empty-state span{font-size:28px;color:var(--purple)}.empty-state strong{color:var(--navy);font-size:14px}.empty-state p{font-size:11px}
+.market-panel { grid-column:1/-1; }
+.market-status { color:var(--muted); font-size:10px; }
+.market-refresh-button { margin-right:8px; padding:7px 10px; border:1px solid var(--border); border-radius:9px; background:var(--surface); color:var(--purple); font-size:10px; font-weight:700; cursor:pointer; }
+.market-refresh-button:disabled { cursor:not-allowed; opacity:.55; }
+.market-loading { color:var(--purple); }
+.portfolio-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:18px; }
+.portfolio-summary>div { display:grid; gap:7px; padding:15px; border:1px solid var(--border); border-radius:14px; background:rgba(108,92,231,.035); }
+.portfolio-summary span,.holding-card>div>span { color:var(--muted); font-size:10px; font-weight:600; }
+.portfolio-summary strong { font-size:17px; letter-spacing:-.025em; }
+.market-positive { color:var(--green)!important; }
+.market-negative { color:var(--red)!important; }
+.portfolio-form { display:grid; grid-template-columns:minmax(220px,1.6fr) minmax(120px,.8fr) minmax(160px,1fr) auto; align-items:end; gap:10px; margin-bottom:10px; }
+.portfolio-form .primary-button { min-height:43px; padding:12px 15px; font-size:11px; }
+.portfolio-form .primary-button:disabled { cursor:not-allowed; opacity:.55; transform:none; }
+.ticker-search { position:relative; }
+.ticker-search-hint { color:var(--muted); font-size:10px; font-weight:500; }
+.market-search-empty { color:var(--muted); font-size:10px; font-weight:500; }
+.ticker-suggestions { position:absolute; z-index:15; top:calc(100% + 4px); left:0; width:100%; max-height:260px; overflow:auto; padding:5px; border:1px solid var(--border); border-radius:13px; background:var(--surface); box-shadow:0 14px 34px rgba(19,17,46,.16); }
+.ticker-suggestions button { display:flex; width:100%; align-items:center; justify-content:space-between; gap:12px; padding:10px; border:0; border-radius:9px; background:transparent; color:var(--navy); text-align:left; cursor:pointer; }
+.ticker-suggestions button:hover,.ticker-suggestions button:focus-visible { background:rgba(108,92,231,.08); }
+.ticker-suggestions button>span { display:grid; gap:3px; min-width:0; }
+.ticker-suggestions button>span strong { color:var(--purple); font-size:12px; }
+.ticker-suggestions button small { overflow:hidden; color:var(--muted); font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.ticker-suggestions button>strong { flex:0 0 auto; font:600 11px "Roboto Mono",monospace; }
+.market-error { color:var(--red); font-size:10px; }
+.market-note,.market-disclaimer { color:var(--muted); font-size:10px; line-height:1.5; }
+.market-disclaimer { margin:12px 0 18px; }
+.holding-list { display:grid; gap:9px; }
+.holding-card { display:grid; grid-template-columns:minmax(145px,1.5fr) repeat(4,minmax(110px,1fr)) auto; align-items:center; gap:12px; padding:14px; border:1px solid var(--border); border-radius:14px; }
+.holding-card>div { display:grid; gap:4px; min-width:0; }
+.holding-card>div>strong { overflow:hidden; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.holding-card small { color:var(--muted); font-size:9px; }
+.holding-card .holding-name>strong { color:var(--purple); font-size:14px; }
+.holding-card .holding-name>span { overflow:hidden; color:var(--navy); font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+.holding-remove { padding:8px 10px; border:1px solid var(--border); border-radius:9px; background:transparent; color:var(--muted); font-size:10px; cursor:pointer; }
+.holding-remove:hover { border-color:var(--red); color:var(--red); }
+.holding-error { grid-column:1/-1; }
+.market-empty { padding:25px; }
+body[data-theme="dark"] .portfolio-summary>div { background:rgba(108,92,231,.08); }
+body[data-theme="dark"] .ticker-suggestions button:hover,body[data-theme="dark"] .ticker-suggestions button:focus-visible { background:#292743; }
+body[data-theme="dark"] .holding-remove { background:#181a2d; }
 body[data-theme="dark"] { --navy:#f5f4ff; --surface:#202239; --background:#111321; --muted:#a7a7ba; --border:#343750; --shadow:0 20px 50px rgba(0,0,0,.25); }
 body[data-theme="dark"] .panel,body[data-theme="dark"] .summary-card:not(.balance-card){background:rgba(32,34,57,.94)}
 body[data-theme="dark"] input,body[data-theme="dark"] select,body[data-theme="dark"] .search-field,body[data-theme="dark"] .goal-item{background:#181a2d;color:#f5f4ff}
@@ -88,6 +129,6 @@ body[data-theme="dark"] .health-score{background:linear-gradient(135deg,#282641,
 body[data-theme="dark"] .transaction:hover{border-color:#555978}body[data-theme="dark"] .export-button{background:#292743}
 body[data-theme="dark"] .appearance-popover button:hover{background:#292743}
 
-@media(max-width:800px){.summary-grid{grid-template-columns:1fr}.workspace-grid{grid-template-columns:1fr}.history-panel,.evolution-panel{grid-column:auto}.topbar{align-items:flex-start;flex-direction:column}.top-actions,.month-field{width:100%}.month-field{flex:1}.history-tools{width:100%;flex-wrap:wrap}.search-field{flex:1}.search-field input{width:100%}}
-@media(max-width:520px){body{padding:24px 12px}.panel,.summary-card{padding:18px;border-radius:18px}.form-row,.goal-form{grid-template-columns:1fr}.goal-form .primary-button{grid-column:auto}.form-actions{flex-direction:column}.transaction{grid-template-columns:auto 1fr auto auto auto}.transaction-value{grid-column:2}.duplicate-button{grid-column:3;grid-row:1/3}.edit-button{grid-column:4;grid-row:1/3}.delete-button{grid-column:5;grid-row:1/3}.panel-heading{align-items:flex-start;flex-direction:column}.panel-heading select{width:100%}}
+@media(max-width:800px){.summary-grid{grid-template-columns:1fr}.workspace-grid{grid-template-columns:1fr}.history-panel,.evolution-panel,.market-panel{grid-column:auto}.topbar{align-items:flex-start;flex-direction:column}.top-actions,.month-field{width:100%}.month-field{flex:1}.history-tools{width:100%;flex-wrap:wrap}.search-field{flex:1}.search-field input{width:100%}.portfolio-form{grid-template-columns:1fr 1fr}.portfolio-form .ticker-search{grid-column:1/-1}.portfolio-form .primary-button{grid-column:1/-1}.holding-card{grid-template-columns:repeat(3,minmax(0,1fr))}.holding-name{grid-column:span 2}.holding-remove{justify-self:end}.holding-error{grid-column:1/-1}}
+@media(max-width:520px){body{padding:24px 12px}.panel,.summary-card{padding:18px;border-radius:18px}.form-row,.goal-form{grid-template-columns:1fr}.goal-form .primary-button{grid-column:auto}.form-actions{flex-direction:column}.transaction{grid-template-columns:auto 1fr auto auto auto}.transaction-value{grid-column:2}.duplicate-button{grid-column:3;grid-row:1/3}.edit-button{grid-column:4;grid-row:1/3}.delete-button{grid-column:5;grid-row:1/3}.panel-heading{align-items:flex-start;flex-direction:column}.panel-heading select{width:100%}.portfolio-summary{grid-template-columns:1fr}.portfolio-form{grid-template-columns:1fr}.portfolio-form .ticker-search,.portfolio-form .primary-button{grid-column:auto}.holding-card{grid-template-columns:1fr 1fr;gap:10px}.holding-name{grid-column:1/-1}.holding-remove{grid-column:2;grid-row:4}.holding-error{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

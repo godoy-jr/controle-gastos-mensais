@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import MarketPortfolio from "./MarketPortfolio.jsx";
 
 const TRANSACTIONS_KEY = "fluxo.transactions";
 const GOALS_KEY = "fluxo.goals";
@@ -549,6 +550,8 @@ function App() {
                     </div>
                     <p className="privacy-note">Seus dados são analisados apenas neste navegador.</p>
                 </article>
+
+                <MarketPortfolio />
 
                 <article className="panel evolution-panel">
                     <div className="panel-heading">
