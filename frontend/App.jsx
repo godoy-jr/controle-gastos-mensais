@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import MarketPortfolio from "./MarketPortfolio.jsx";
+import Sidebar from "./components/Sidebar.jsx";
+import SummaryCards from "./components/SummaryCards.jsx";
+import TransactionForm from "./components/TransactionForm.jsx";
+import GoalsPanel from "./components/GoalsPanel.jsx";
+import InsightsPanel from "./components/InsightsPanel.jsx";
+import TransactionHistory from "./components/TransactionHistory.jsx";
 
 const TRANSACTIONS_KEY = "fluxo.transactions";
 const GOALS_KEY = "fluxo.goals";
@@ -60,18 +66,11 @@ function prepareCanvas(canvas) {
     return { context, width };
 }
 
-function ActionButton({ action, label, symbol, className, onClick }) {
-    return (
-        <button className={className} type="button" data-action={action} aria-label={label} title={label} onClick={onClick}>
-            {symbol}
-        </button>
-    );
-}
-
 function App() {
     const [transactions, setTransactions] = useStoredArray(TRANSACTIONS_KEY);
     const [goals, setGoals] = useStoredArray(GOALS_KEY);
     const [month, setMonth] = useState(currentMonth);
+    const [activePage, setActivePage] = useState("overview");
     const [typeFilter, setTypeFilter] = useState("all");
     const [search, setSearch] = useState("");
     const [type, setType] = useState("income");
@@ -160,9 +159,9 @@ function App() {
             const flow = flowCanvas.current;
             const categoryChart = categoryCanvas.current;
             const evolution = evolutionCanvas.current;
-            if (!flow || !categoryChart || !evolution) return;
+            if (!flow && !categoryChart && !evolution) return;
 
-            {
+            if (flow) {
                 const { context: ctx, width } = prepareCanvas(flow);
                 const max = Math.max(totals.income, totals.expense, 1);
                 const bars = [
@@ -192,7 +191,7 @@ function App() {
                 });
             }
 
-            {
+            if (categoryChart) {
                 const { context: ctx, width } = prepareCanvas(categoryChart);
                 const entries = Object.entries(categoryExpenses).sort((a, b) => b[1] - a[1]);
                 const total = entries.reduce((sum, [, value]) => sum + value, 0);
@@ -231,7 +230,7 @@ function App() {
                 }
             }
 
-            {
+            if (evolution) {
                 const { context: ctx, width } = prepareCanvas(evolution);
                 const months = Array.from({ length: 6 }, (_, index) => shiftMonth(month, index - 5));
                 const series = months.map(value => ({ month: value, ...totalsForMonth(transactions, value) }));
@@ -289,7 +288,7 @@ function App() {
             window.clearTimeout(timer);
             window.removeEventListener("resize", drawCharts);
         };
-    }, [transactions, totals, categoryExpenses, month, resolvedTheme]);
+    }, [transactions, totals, categoryExpenses, month, resolvedTheme, activePage]);
 
     const insights = useMemo(() => {
         if (!monthlyTransactions.length) return [];
@@ -338,6 +337,7 @@ function App() {
     };
 
     const editTransaction = item => {
+        setActivePage("transactions");
         setEditingId(item.id);
         setType(item.type);
         setDescription(item.description);
@@ -345,10 +345,11 @@ function App() {
         setDate(item.date);
         setCategory(item.category);
         setFeedback("");
-        formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        window.setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
     };
 
     const duplicateTransaction = item => {
+        setActivePage("transactions");
         setEditingId(null);
         setType(item.type);
         setDescription(item.description);
@@ -356,7 +357,7 @@ function App() {
         setDate(today());
         setCategory(item.category);
         setFeedback("Revise os dados e confirme para criar uma nova movimentação.");
-        formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        window.setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
     };
 
     const deleteTransaction = id => {
@@ -406,188 +407,147 @@ function App() {
         ? `${current >= previous ? "↑" : "↓"} ${Math.abs(Math.round(((current - previous) / previous) * 100))}% vs. mês anterior`
         : `${label[0].toUpperCase() + label.slice(1)} no período`;
 
+    const pageDetails = {
+        overview: ["Visão geral", "Acompanhe seu dinheiro e veja como está o mês."],
+        transactions: ["Movimentações", "Registre e organize suas entradas e saídas."],
+        planning: ["Planejamento", "Defina limites e acompanhe suas metas mensais."],
+        investments: ["Investimentos", "Acompanhe sua carteira e as cotações da B3."],
+        analytics: ["Análises", "Entenda seus hábitos e a evolução das suas finanças."]
+    };
+    const [pageTitle, pageDescription] = pageDetails[activePage];
+
     return (
-        <main className="app-shell">
-            <header className="topbar">
-                <div>
-                    <span className="eyebrow">Painel financeiro</span>
-                    <h1>Seu dinheiro, com clareza.</h1>
-                    <p>Acompanhe entradas, saídas e escolhas ao longo do mês.</p>
-                </div>
-                <div className="top-actions">
-                    <details className="appearance-menu" open={appearanceOpen} ref={appearanceRef}>
-                        <summary onClick={event => { event.preventDefault(); setAppearanceOpen(open => !open); }}>
-                            <span aria-hidden="true">◐</span> Aparência
-                        </summary>
-                        <div className="appearance-popover" role="group" aria-label="Escolher tema">
-                            <span className="popover-label">Tema da interface</span>
-                            {[
-                                ["light", "☀", "Claro", "Visual luminoso"],
-                                ["dark", "☾", "Escuro", "Conforto visual"],
-                                ["system", "◑", "Automático", "Segue o sistema"]
-                            ].map(([value, icon, label, helper]) => (
-                                <button className={theme === value ? "active" : ""} key={value} type="button" onClick={() => { setTheme(value); setAppearanceOpen(false); }}>
-                                    <span aria-hidden="true">{icon}</span><span>{label}<small>{helper}</small></span><i />
-                                </button>
-                            ))}
-                        </div>
-                    </details>
-                    <label className="month-field">
-                        <span>Mês de referência</span>
-                        <input type="month" value={month} onChange={event => setMonth(event.target.value)} />
-                    </label>
-                </div>
-            </header>
-
-            <section className="summary-grid" aria-label="Resumo financeiro">
-                <article className="summary-card balance-card">
-                    <span className="card-label">Saldo do mês</span>
-                    <strong>{money(balance)}</strong>
-                    <span className="card-helper">{balance >= 0 ? "Seu mês está com saldo positivo" : "As saídas ultrapassaram as entradas"}</span>
-                </article>
-                <article className="summary-card income-card">
-                    <span className="card-label">Entradas</span>
-                    <strong>{money(totals.income)}</strong>
-                    <span className="trend positive">{comparisonText(totals.income, previousTotals.income, "receitas")}</span>
-                </article>
-                <article className="summary-card expense-card">
-                    <span className="card-label">Saídas</span>
-                    <strong>{money(totals.expense)}</strong>
-                    <span className="trend negative">{comparisonText(totals.expense, previousTotals.expense, "despesas")}</span>
-                </article>
-            </section>
-
-            <section className="workspace-grid">
-                <article className="panel form-panel">
-                    <div className="panel-heading"><div><span className="eyebrow dark">Nova movimentação</span><h2>Registrar valor</h2></div></div>
-                    <form id="transaction-form" ref={formRef} onSubmit={submitTransaction}>
-                        <div className="type-switch" role="group" aria-label="Tipo de movimentação">
-                            <input type="radio" name="type" id="type-income" value="income" checked={type === "income"} onChange={() => setType("income")} />
-                            <label htmlFor="type-income">Entrada</label>
-                            <input type="radio" name="type" id="type-expense" value="expense" checked={type === "expense"} onChange={() => setType("expense")} />
-                            <label htmlFor="type-expense">Saída</label>
-                        </div>
-                        <label>Descrição<input value={description} onChange={event => setDescription(event.target.value)} maxLength="80" placeholder="Ex.: Salário, aluguel..." required /></label>
-                        <div className="form-row">
-                            <label>Valor<input value={amount} onChange={event => setAmount(event.target.value)} type="number" min="0.01" step="0.01" placeholder="0,00" required /></label>
-                            <label>Data<input value={date} onChange={event => setDate(event.target.value)} type="date" required /></label>
-                        </div>
-                        <label>Categoria
-                            <select value={category} onChange={event => setCategory(event.target.value)} required>
-                                {categories[type].map(item => <option key={item} value={item}>{item}</option>)}
-                            </select>
+        <div className="app-layout">
+            <Sidebar activePage={activePage} onNavigate={setActivePage} />
+            <main className="app-content">
+                <header className="topbar">
+                    <div>
+                        <span className="eyebrow">Painel financeiro</span>
+                        <h1>{pageTitle}</h1>
+                        <p>{pageDescription}</p>
+                    </div>
+                    <div className="top-actions">
+                        <details className="appearance-menu" open={appearanceOpen} ref={appearanceRef}>
+                            <summary onClick={event => { event.preventDefault(); setAppearanceOpen(open => !open); }}>
+                                <span aria-hidden="true">◐</span> Aparência
+                            </summary>
+                            <div className="appearance-popover" role="group" aria-label="Escolher tema">
+                                <span className="popover-label">Tema da interface</span>
+                                {[
+                                    ["light", "☀", "Claro", "Visual luminoso"],
+                                    ["dark", "☾", "Escuro", "Conforto visual"],
+                                    ["system", "◑", "Automático", "Segue o sistema"]
+                                ].map(([value, icon, label, helper]) => (
+                                    <button className={theme === value ? "active" : ""} key={value} type="button" onClick={() => { setTheme(value); setAppearanceOpen(false); }}>
+                                        <span aria-hidden="true">{icon}</span><span>{label}<small>{helper}</small></span><i />
+                                    </button>
+                                ))}
+                            </div>
+                        </details>
+                        <label className="month-field">
+                            <span>Mês de referência</span>
+                            <input type="month" value={month} onChange={event => setMonth(event.target.value)} />
                         </label>
-                        <div className="form-actions">
-                            <button className="primary-button" type="submit">{editingId ? "Salvar alterações" : feedback.startsWith("Revise") ? "Adicionar cópia" : "Adicionar movimentação"}</button>
-                            {editingId || feedback.startsWith("Revise") ? <button className="secondary-button" type="button" onClick={resetForm}>Cancelar edição</button> : null}
-                        </div>
-                        <p className="form-feedback" role="status" aria-live="polite">{feedback}</p>
-                    </form>
-                </article>
-
-                <article className="panel chart-panel">
-                    <div className="panel-heading"><div><span className="eyebrow dark">Visão geral</span><h2>Entradas x saídas</h2></div></div>
-                    <canvas ref={flowCanvas} aria-label="Gráfico de entradas e saídas" />
-                </article>
-
-                <article className="panel chart-panel">
-                    <div className="panel-heading"><div><span className="eyebrow dark">Distribuição</span><h2>Gastos por categoria</h2></div></div>
-                    <canvas ref={categoryCanvas} aria-label="Gráfico de gastos por categoria" />
-                </article>
-
-                <article className="panel goal-panel">
-                    <div className="panel-heading"><div><span className="eyebrow dark">Planejamento</span><h2>Metas mensais</h2></div></div>
-                    <form className="goal-form" onSubmit={submitGoal}>
-                        <label>Categoria
-                            <select value={goalCategory} onChange={event => setGoalCategory(event.target.value)}>
-                                {categories.expense.map(item => <option key={item} value={item}>{item}</option>)}
-                            </select>
-                        </label>
-                        <label>Limite mensal<input value={goalLimit} onChange={event => setGoalLimit(event.target.value)} type="number" min="1" step="0.01" placeholder="Ex.: 800,00" required /></label>
-                        <button className="primary-button" type="submit">Criar meta</button>
-                    </form>
-                    <div className="goal-list">
-                        {monthlyGoals.map(goal => {
-                            const spent = categoryExpenses[goal.category] || 0;
-                            const percentage = Math.min((spent / goal.limit) * 100, 100);
-                            return (
-                                <article className="goal-item" key={goal.id}>
-                                    <div className="goal-top"><strong>{goal.category}</strong><span>{Math.round(percentage)}% utilizado</span></div>
-                                    <div className="goal-track"><i className={`goal-progress${percentage >= 80 ? " warning" : ""}`} style={{ width: `${percentage}%` }} /></div>
-                                    <div className="goal-footer">
-                                        <span>{money(spent)} de {money(goal.limit)}</span>
-                                        <button className="goal-remove" type="button" onClick={() => setGoals(saved => saved.filter(item => item.id !== goal.id))}>Remover meta</button>
-                                    </div>
-                                </article>
-                            );
-                        })}
                     </div>
-                    {!monthlyGoals.length ? <div className="empty-goals">Crie limites por categoria para acompanhar seus gastos.</div> : null}
-                </article>
+                </header>
 
-                <article className="panel insights-panel">
-                    <div className="panel-heading">
-                        <div><span className="eyebrow dark">Assistente inteligente</span><h2>Análise financeira</h2></div>
-                        <span className="ai-badge"><i /> IA local</span>
-                    </div>
-                    <div className="health-score">
-                        <span className="score-ring">{monthlyTransactions.length ? (() => {
-                            let score = 50;
-                            if (balance >= 0) score += 20;
-                            else score -= 20;
-                            if (savingsRate >= 20) score += 20;
-                            else if (savingsRate > 0) score += 10;
-                            if (monthlyGoals.length) score += 10;
-                            return Math.max(0, Math.min(score, 100));
-                        })() : "--"}</span>
-                        <div>
-                            <strong>{!monthlyTransactions.length ? "Aguardando dados" : savingsRate >= 20 && balance >= 0 ? "Saúde financeira excelente" : balance >= 0 ? "Bom controle financeiro" : "Seu orçamento pede atenção"}</strong>
-                            <p>{monthlyTransactions.length ? `Taxa de economia estimada em ${Math.round(savingsRate)}% neste mês.` : "Registre movimentações para receber uma análise personalizada."}</p>
-                        </div>
-                    </div>
-                    <div className="insight-list">
-                        {insights.map(([icon, text], index) => <div className="insight" key={`${icon}-${index}`}><span>{icon}</span><p>{text}</p></div>)}
-                    </div>
-                    <p className="privacy-note">Seus dados são analisados apenas neste navegador.</p>
-                </article>
+                <section className="page-view" id="overview" aria-label="Visão geral" hidden={activePage !== "overview"}>
+                    <SummaryCards
+                        balance={money(balance)}
+                        balanceValue={balance}
+                        totals={{ income: money(totals.income), expense: money(totals.expense) }}
+                        comparisonText={type => comparisonText(
+                            totals[type],
+                            previousTotals[type],
+                            type === "income" ? "receitas" : "despesas"
+                        )}
+                    />
+                    <section className="workspace-grid">
+                        <article className="panel chart-panel">
+                            <div className="panel-heading"><div><span className="eyebrow dark">Visão geral</span><h2>Entradas x saídas</h2></div></div>
+                            <canvas ref={flowCanvas} aria-label="Gráfico de entradas e saídas" />
+                        </article>
+                        <article className="panel chart-panel">
+                            <div className="panel-heading"><div><span className="eyebrow dark">Distribuição</span><h2>Gastos por categoria</h2></div></div>
+                            <canvas ref={categoryCanvas} aria-label="Gráfico de gastos por categoria" />
+                        </article>
+                    </section>
+                </section>
 
-                <MarketPortfolio />
+                <section className="page-view" aria-label="Movimentações" hidden={activePage !== "transactions"}>
+                    <section className="workspace-grid">
+                        <TransactionForm
+                            formRef={formRef}
+                            categories={categories}
+                            type={type}
+                            setType={setType}
+                            description={description}
+                            setDescription={setDescription}
+                            amount={amount}
+                            setAmount={setAmount}
+                            date={date}
+                            setDate={setDate}
+                            category={category}
+                            setCategory={setCategory}
+                            onSubmit={submitTransaction}
+                            editingId={editingId}
+                            feedback={feedback}
+                            onReset={resetForm}
+                        />
+                        <TransactionHistory
+                            search={search}
+                            setSearch={setSearch}
+                            typeFilter={typeFilter}
+                            setTypeFilter={setTypeFilter}
+                            onExport={exportCsv}
+                            transactions={visibleTransactions}
+                            onDuplicate={duplicateTransaction}
+                            onEdit={editTransaction}
+                            onDelete={deleteTransaction}
+                            money={money}
+                        />
+                    </section>
+                </section>
 
-                <article className="panel evolution-panel">
-                    <div className="panel-heading">
-                        <div><span className="eyebrow dark">Histórico visual</span><h2>Evolução dos últimos 6 meses</h2></div>
-                        <div className="chart-legend"><span className="legend-income">Entradas</span><span className="legend-expense">Saídas</span></div>
-                    </div>
-                    <canvas ref={evolutionCanvas} aria-label="Gráfico de evolução dos últimos seis meses" />
-                </article>
+                <section className="page-view" aria-label="Planejamento" hidden={activePage !== "planning"}>
+                    <GoalsPanel
+                        categories={categories}
+                        goalCategory={goalCategory}
+                        setGoalCategory={setGoalCategory}
+                        goalLimit={goalLimit}
+                        setGoalLimit={setGoalLimit}
+                        onSubmit={submitGoal}
+                        monthlyGoals={monthlyGoals}
+                        categoryExpenses={categoryExpenses}
+                        money={money}
+                        onRemoveGoal={id => setGoals(saved => saved.filter(item => item.id !== id))}
+                    />
+                </section>
 
-                <article className="panel history-panel">
-                    <div className="panel-heading">
-                        <div><span className="eyebrow dark">Movimentações</span><h2>Histórico mensal</h2></div>
-                        <div className="history-tools">
-                            <label className="search-field"><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar movimentação" aria-label="Buscar movimentação" /></label>
-                            <select value={typeFilter} onChange={event => setTypeFilter(event.target.value)} aria-label="Filtrar movimentações">
-                                <option value="all">Todas</option><option value="income">Entradas</option><option value="expense">Saídas</option>
-                            </select>
-                            <button className="export-button" type="button" onClick={exportCsv}>Exportar CSV</button>
-                        </div>
-                    </div>
-                    <div className="transaction-list">
-                        {visibleTransactions.map(item => (
-                            <article className="transaction" key={item.id}>
-                                <span className="transaction-icon">{item.type === "income" ? "↑" : "↓"}</span>
-                                <div><h3>{item.description}</h3><p>{item.category} • {new Date(`${item.date}T12:00:00`).toLocaleDateString("pt-BR")}</p></div>
-                                <strong className={`transaction-value ${item.type}`}>{item.type === "income" ? "+" : "-"} {money(item.amount)}</strong>
-                                <ActionButton action="duplicate" label={`Duplicar ${item.description}`} symbol="⧉" className="duplicate-button" onClick={() => duplicateTransaction(item)} />
-                                <ActionButton action="edit" label={`Editar ${item.description}`} symbol="✎" className="edit-button" onClick={() => editTransaction(item)} />
-                                <ActionButton action="delete" label={`Remover ${item.description}`} symbol="✕" className="delete-button" onClick={() => deleteTransaction(item.id)} />
-                            </article>
-                        ))}
-                    </div>
-                    {!visibleTransactions.length ? <div className="empty-state"><span>✦</span><strong>Nenhuma movimentação neste período</strong><p>Use o formulário para registrar sua primeira entrada ou saída.</p></div> : null}
-                </article>
-            </section>
-        </main>
+                <section className="page-view" aria-label="Investimentos" hidden={activePage !== "investments"}>
+                    <MarketPortfolio />
+                </section>
+
+                <section className="page-view" aria-label="Análises" hidden={activePage !== "analytics"}>
+                    <section className="workspace-grid">
+                        <InsightsPanel
+                            monthlyTransactions={monthlyTransactions}
+                            balance={balance}
+                            savingsRate={savingsRate}
+                            monthlyGoals={monthlyGoals}
+                            insights={insights}
+                        />
+                        <article className="panel evolution-panel">
+                            <div className="panel-heading">
+                                <div><span className="eyebrow dark">Histórico visual</span><h2>Evolução dos últimos 6 meses</h2></div>
+                                <div className="chart-legend"><span className="legend-income">Entradas</span><span className="legend-expense">Saídas</span></div>
+                            </div>
+                            <canvas ref={evolutionCanvas} aria-label="Gráfico de evolução dos últimos seis meses" />
+                        </article>
+                    </section>
+                </section>
+            </main>
+        </div>
     );
 }
 
