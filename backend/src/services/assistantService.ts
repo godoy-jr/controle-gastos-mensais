@@ -17,7 +17,21 @@ export type FinanceSummary = {
     expensesByCategory: Array<{ category: string; amount: number }>;
 };
 
-export async function askFinancialAssistant(userId: string, message: string, clientSummary?: FinanceSummary) {
+export type MarketContext = {
+    base: string;
+    quote: string;
+    rate: number;
+    amount: number | null;
+    convertedAmount: number | null;
+    updatedAt: string;
+};
+
+export async function askFinancialAssistant(
+    userId: string,
+    message: string,
+    clientSummary?: FinanceSummary,
+    marketContext?: MarketContext
+) {
     if (!env.GEMINI_API_KEY) {
         throw new HttpError(503, "Assistente indisponível: configure GEMINI_API_KEY no backend.");
     }
@@ -60,12 +74,12 @@ export async function askFinancialAssistant(userId: string, message: string, cli
             body: JSON.stringify({
                 systemInstruction: {
                     parts: [{
-                        text: "Você é um assistente educacional de finanças pessoais. Responda em português do Brasil, com clareza e sem prometer retornos. Use apenas o resumo financeiro fornecido para falar dos dados pessoais; se não houver dados suficientes, diga isso. Não peça credenciais, dados bancários ou informações sensíveis. Não forneça recomendação individual de compra ou venda de ativos."
+                        text: "Você é um assistente educacional de finanças pessoais e câmbio. Responda em português do Brasil, com clareza e sem prometer retornos. Use apenas o resumo financeiro fornecido para falar dos dados pessoais e a cotação indicativa fornecida para falar do câmbio; não invente cotações nem afirme que são em tempo real sem considerar o horário de atualização. Se não houver dados suficientes, diga isso. Não peça credenciais, dados bancários ou informações sensíveis. Não forneça recomendação individual de compra ou venda de ativos."
                     }]
                 },
                 contents: [{
                     role: "user",
-                    parts: [{ text: `Resumo financeiro do usuário (últimos 30 dias): ${JSON.stringify(financialContext)}\n\nPergunta: ${message}` }]
+                    parts: [{ text: `Resumo financeiro do usuário (últimos 30 dias): ${JSON.stringify(financialContext)}\n\nCotação indicativa do painel (se disponível): ${JSON.stringify(marketContext || null)}\n\nPergunta: ${message}` }]
                 }],
                 generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
             })

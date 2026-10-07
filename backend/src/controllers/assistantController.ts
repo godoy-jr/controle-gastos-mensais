@@ -13,11 +13,19 @@ const chatSchema = z.object({
             category: z.string().trim().min(1).max(60),
             amount: z.number().nonnegative().max(1_000_000_000_000)
         })).max(20)
+    }).optional(),
+    marketContext: z.object({
+        base: z.string().trim().length(3),
+        quote: z.string().trim().length(3),
+        rate: z.number().positive().max(1_000_000),
+        amount: z.number().nonnegative().max(1_000_000_000_000).nullable(),
+        convertedAmount: z.number().nonnegative().max(1_000_000_000_000).nullable(),
+        updatedAt: z.string().max(40)
     }).optional()
 });
 
 export async function postChatMessage(request: Request, response: Response) {
-    const { message, financeSummary } = chatSchema.parse(request.body);
+    const { message, financeSummary, marketContext } = chatSchema.parse(request.body);
     const userId = (request as AuthenticatedRequest).userId;
-    response.json(await askFinancialAssistant(userId, message, financeSummary));
+    response.json(await askFinancialAssistant(userId, message, financeSummary, marketContext));
 }

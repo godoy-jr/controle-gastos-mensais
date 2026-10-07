@@ -3,7 +3,7 @@ import { apiRequest } from "../services/api.js";
 
 const TOKEN_KEY = "fluxo.apiToken";
 
-export default function AssistantPanel({ financeSummary }) {
+export default function AssistantPanel({ financeSummary, marketContext, contextLabel = "finanças" }) {
     const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || "");
     const [authMode, setAuthMode] = useState("login");
     const [name, setName] = useState("");
@@ -59,7 +59,7 @@ export default function AssistantPanel({ financeSummary }) {
             const result = await apiRequest("/assistant/chat", {
                 method: "POST",
                 token,
-                body: JSON.stringify({ message: question, financeSummary })
+                body: JSON.stringify({ message: question, financeSummary, marketContext })
             });
             setMessages(current => [...current, { role: "assistant", text: result.answer }]);
         } catch (reason) {
@@ -80,12 +80,12 @@ export default function AssistantPanel({ financeSummary }) {
     return (
         <article className="panel assistant-panel">
             <div className="panel-heading">
-                <div><span className="eyebrow dark">Assistência financeira</span><h2>Converse com seu assistente</h2></div>
+                <div><span className="eyebrow dark">Assistência financeira</span><h2>{contextLabel === "câmbio" ? "Converse sobre câmbio" : "Converse com seu assistente"}</h2></div>
                 {token ? <button className="secondary-button assistant-signout" type="button" onClick={disconnect}>Sair da conta</button> : <span className="ai-badge"><i /> Gemini</span>}
             </div>
             {!token ? (
                 <div className="assistant-login">
-                    <p>Entre ou crie uma conta para conversar com o assistente. Quando você enviar uma pergunta, apenas um resumo agregado dos últimos 30 dias será enviado para gerar a resposta.</p>
+                    <p>Entre ou crie uma conta para conversar com o assistente. {marketContext ? "A cotação indicativa exibida nesta tela será enviada junto à pergunta." : "Quando você enviar uma pergunta, apenas um resumo agregado dos últimos 30 dias será enviado para gerar a resposta."}</p>
                     <div className="assistant-auth-tabs" role="group" aria-label="Acesso à conta">
                         <button className={authMode === "login" ? "active" : ""} type="button" onClick={() => setAuthMode("login")}>Entrar</button>
                         <button className={authMode === "register" ? "active" : ""} type="button" onClick={() => setAuthMode("register")}>Criar conta</button>
@@ -100,7 +100,7 @@ export default function AssistantPanel({ financeSummary }) {
             ) : (
                 <div className="assistant-chat">
                     <div className="chat-messages" ref={conversationRef} aria-live="polite">
-                        {!messages.length ? <div className="chat-welcome"><span>✦</span><strong>Como posso ajudar?</strong><p>Pergunte sobre organização financeira ou peça uma leitura dos seus dados registrados.</p></div> : null}
+                        {!messages.length ? <div className="chat-welcome"><span>✦</span><strong>Como posso ajudar?</strong><p>{marketContext ? `Pergunte sobre a cotação de ${marketContext.base}/BRL, conversão ou variações recentes.` : "Pergunte sobre organização financeira ou peça uma leitura dos seus dados registrados."}</p></div> : null}
                         {messages.map((item, index) => (
                             <div className={`chat-message ${item.role}`} key={`${item.role}-${index}`}>
                                 <span>{item.role === "user" ? "Você" : "Assistente"}</span>
@@ -114,7 +114,7 @@ export default function AssistantPanel({ financeSummary }) {
                         <textarea id="assistant-message" value={message} onChange={event => setMessage(event.target.value)} maxLength="1500" rows="2" placeholder="Escreva sua pergunta…" disabled={chatLoading} required />
                         <button className="primary-button" type="submit" disabled={chatLoading || !message.trim()}>Enviar</button>
                     </form>
-                    <p className="chat-disclaimer">Conteúdo educativo; não representa recomendação de investimento. Apenas totais e categorias dos últimos 30 dias são compartilhados com a IA junto à sua pergunta.</p>
+                    <p className="chat-disclaimer">Conteúdo educativo; não representa recomendação de investimento. {marketContext ? "A cotação é indicativa, atualizada periodicamente e pode não refletir o valor de uma operação." : "Apenas totais e categorias dos últimos 30 dias são compartilhados com a IA junto à sua pergunta."}</p>
                 </div>
             )}
             {info ? <p className="form-feedback" role="status">{info}</p> : null}

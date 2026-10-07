@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { apiRequest } from "../services/api.js";
 import { formatMoney } from "../utils/finance.js";
+import AssistantPanel from "./AssistantPanel.jsx";
 
 const currencyOptions = ["USD", "EUR", "GBP", "ARS"];
 const chartTooltipStyle = { border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)", color: "var(--navy)", fontSize: 11 };
@@ -20,28 +21,44 @@ const formatExchangeRate = value => new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 4
 }).format(value);
 
-export default function CurrencyPanel() {
+export default function CurrencyPanel({ financeSummary }) {
     const [rates, setRates] = useState(null);
     const [history, setHistory] = useState([]);
     const [currency, setCurrency] = useState("USD");
     const [amount, setAmount] = useState("1");
+    const [rateUpdatedAt, setRateUpdatedAt] = useState("");
     const [loading, setLoading] = useState(true);
     const [historyLoading, setHistoryLoading] = useState(true);
     const [error, setError] = useState("");
     const [historyError, setHistoryError] = useState("");
 
     useEffect(() => {
-        const controller = new AbortController();
-        setLoading(true);
-        apiRequest("/currencies?base=BRL&symbols=USD,EUR,GBP,ARS", { signal: controller.signal })
-            .then(setRates)
-            .catch(reason => {
-                if (reason.name !== "AbortError") setError(reason.message);
-            })
-            .finally(() => {
-                if (!controller.signal.aborted) setLoading(false);
-            });
-        return () => controller.abort();
+        let active = true;
+        let controller;
+        const loadRates = () => {
+            controller?.abort();
+            controller = new AbortController();
+            apiRequest("/currencies?base=BRL&symbols=USD,EUR,GBP,ARS", { signal: controller.signal })
+                .then(result => {
+                    if (!active) return;
+                    setRates(result);
+                    setRateUpdatedAt(result.updatedAt);
+                    setError("");
+                })
+                .catch(reason => {
+                    if (active && reason.name !== "AbortError") setError(reason.message);
+                })
+                .finally(() => {
+                    if (active) setLoading(false);
+                });
+        };
+        loadRates();
+        const intervalId = window.setInterval(loadRates, 60_000);
+        return () => {
+            active = false;
+            window.clearInterval(intervalId);
+            controller?.abort();
+        };
     }, []);
 
     useEffect(() => {
@@ -65,12 +82,22 @@ export default function CurrencyPanel() {
         const value = Number(amount);
         return Number.isFinite(value) && selectedRate ? value * selectedRate : null;
     }, [amount, selectedRate]);
+    const marketContext = selectedRate
+        ? {
+            base: currency,
+            quote: "BRL",
+            rate: selectedRate,
+            amount: Number.isFinite(Number(amount)) ? Number(amount) : null,
+            convertedAmount,
+            updatedAt: rateUpdatedAt
+        }
+        : undefined;
 
     return (
         <article className="panel currency-panel">
             <div className="panel-heading">
                 <div><span className="eyebrow dark">Mercado de moedas</span><h2>Câmbio e conversor</h2></div>
-                {rates ? <span className="market-status">Atualizado {new Date(rates.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span> : null}
+                {rates ? <span className="market-status">Atualizado {new Date(rateUpdatedAt || rates.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · atualização a cada minuto</span> : null}
             </div>
             <div className="currency-converter">
                 <label>Você converte
@@ -129,6 +156,14 @@ export default function CurrencyPanel() {
                     </button>
                 ))}
             </div>
+            <section className="currency-assistant" aria-label="Dúvidas sobre câmbio">
+                <div className="panel-heading">
+                    <div><span className="eyebrow dark">Assistência em tempo real</span><h2>Tire suas dúvidas sobre câmbio</h2></div>
+                    <span className="ai-badge"><i /> Cotação atualizada a cada minuto</span>
+                </div>
+                <p className="currency-assistant-intro">Pergunte sobre a cotação de {currency}/BRL, conversão ou variações. O assistente recebe a taxa indicativa exibida nesta tela e o horário da última atualização.</p>
+                <AssistantPanel financeSummary={financeSummary} marketContext={marketContext} contextLabel="câmbio" />
+            </section>
         </article>
     );
 }

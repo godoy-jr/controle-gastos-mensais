@@ -146,7 +146,7 @@ export default function DashboardPages({
             </section>
 
             <section className="page-view" aria-label="Câmbio" hidden={activePage !== "currencies"}>
-                {activePage === "currencies" ? <Suspense fallback={<FeatureLoading />}><CurrencyPanel /></Suspense> : null}
+                {activePage === "currencies" ? <Suspense fallback={<FeatureLoading />}><CurrencyPanel financeSummary={chatSummary} /></Suspense> : null}
             </section>
 
             <section className="page-view" aria-label="Notícias" hidden={activePage !== "news"}>
