@@ -41,7 +41,7 @@ As recomendações locais continuam sem transmissão de dados. O novo chat Gemin
 
 ## Cotações e carteira
 
-A busca e as cotações usam a API pública da [brapi.dev](https://brapi.dev/), sem chave de API no navegador. A carteira (até 8 ativos) fica salva no armazenamento local do navegador. No plano gratuito, a API informa atualização de cotações em intervalos de até 30 minutos; a aplicação consulta a carteira automaticamente a cada 30 minutos. Os valores de lucro/prejuízo são estimativas sobre o preço médio informado e não incluem taxas, impostos ou proventos.
+A busca e as cotações usam a API da [brapi.dev](https://brapi.dev/). Alguns ativos podem exigir autenticação para consultar o histórico; nesses casos, a cotação atual continua disponível e a tela informa que o gráfico não pode ser carregado. A carteira (até 8 ativos) fica salva no armazenamento local do navegador. No plano gratuito, a API informa atualização de cotações em intervalos de até 30 minutos; a aplicação consulta a carteira automaticamente a cada 30 minutos. Os valores de lucro/prejuízo são estimativas sobre o preço médio informado e não incluem taxas, impostos ou proventos.
 
 ## Como executar localmente
 

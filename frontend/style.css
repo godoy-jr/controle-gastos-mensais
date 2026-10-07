@@ -135,6 +135,7 @@ canvas { display:block; width:100%; height:260px; }
 .asset-chart-canvas { margin:6px -5px 0; }
 .asset-chart-message { display:grid; min-height:180px; place-items:center; color:var(--muted); font-size:11px; text-align:center; }
 .asset-chart-error { margin-top:14px; }
+.asset-chart-notice { margin:12px 0 0; }
 .asset-market-stats { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; padding-top:15px; border-top:1px solid var(--border); }
 .asset-market-stats>div { display:grid; gap:5px; min-width:0; }
 .asset-market-stats span { color:var(--muted); font-size:9px; }

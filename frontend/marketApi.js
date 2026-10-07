@@ -2,6 +2,7 @@ const API_URL = "https://brapi.dev/api/v2/tickers";
 const QUOTE_API_URL = "https://brapi.dev/api/quote";
 const HISTORY_CACHE_TTL = 30 * 60 * 1000;
 const historyCache = new Map();
+const unavailableHistoryCache = new Map();
 
 function normalizeTicker(item) {
     const price = item.quote?.lastPrice;
@@ -42,12 +43,35 @@ export async function getB3Quote(symbol, { signal } = {}) {
 }
 
 export async function getB3History(symbol, range, interval, { signal } = {}) {
-    const cacheKey = `${symbol.toUpperCase()}:${range}:${interval}`;
+    const normalizedSymbol = symbol.toUpperCase();
+    const cacheKey = `${normalizedSymbol}:${range}:${interval}`;
     const cached = historyCache.get(cacheKey);
     if (cached && Date.now() - cached.cachedAt < HISTORY_CACHE_TTL) return cached.data;
 
+    const unavailableHistory = unavailableHistoryCache.get(normalizedSymbol);
+    if (unavailableHistory && Date.now() - unavailableHistory.cachedAt < HISTORY_CACHE_TTL) {
+        return unavailableHistory.data;
+    }
+
     const params = new URLSearchParams({ range, interval });
     const response = await fetch(`${QUOTE_API_URL}/${encodeURIComponent(symbol)}?${params}`, { signal });
+    if (response.status === 401) {
+        const ticker = await getB3Quote(normalizedSymbol, { signal });
+        if (!ticker) throw new Error(`A API exige autenticação para consultar o histórico de ${normalizedSymbol}.`);
+
+        const result = {
+            quote: {
+                name: ticker.name,
+                price: ticker.price,
+                changePercent: ticker.changePercent,
+                currency: "BRL"
+            },
+            points: [],
+            historyUnavailable: true
+        };
+        unavailableHistoryCache.set(normalizedSymbol, { data: result, cachedAt: Date.now() });
+        return result;
+    }
     if (!response.ok) {
         throw new Error(response.status === 429
             ? "Limite de consultas atingido. Aguarde um pouco e tente novamente."

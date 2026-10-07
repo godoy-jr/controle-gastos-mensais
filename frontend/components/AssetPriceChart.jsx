@@ -51,15 +51,18 @@ export default function AssetPriceChart({ ticker }) {
     const [points, setPoints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [historyUnavailable, setHistoryUnavailable] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
         setLoading(true);
         setError("");
+        setHistoryUnavailable(false);
         getB3History(ticker.symbol, period.range, period.interval, { signal: controller.signal })
             .then(result => {
                 setQuote(result.quote);
                 setPoints(result.points);
+                setHistoryUnavailable(result.historyUnavailable === true);
             })
             .catch(reason => {
                 if (reason.name !== "AbortError") setError(reason.message);
@@ -118,6 +121,11 @@ export default function AssetPriceChart({ ticker }) {
 
             {loading ? <div className="asset-chart-message" role="status">Carregando histórico de {ticker.symbol}…</div> : null}
             {error ? <p className="market-error asset-chart-error" role="alert">{error}</p> : null}
+            {historyUnavailable && !loading ? (
+                <p className="market-note asset-chart-notice" role="status">
+                    A API exige autenticação para exibir o histórico deste ativo. A cotação atual continua disponível.
+                </p>
+            ) : null}
             {!loading && !error && !points.length ? <div className="asset-chart-message">Sem histórico disponível para este período.</div> : null}
             {!loading && !error && points.length ? (
                 <div className="asset-chart-canvas">
