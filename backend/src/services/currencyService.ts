@@ -4,6 +4,7 @@ import { HttpError } from "../utils/httpError.js";
 const API_ROOT = "https://economia.awesomeapi.com.br/json";
 const CURRENCIES = new Set(["BRL", "USD", "EUR", "GBP", "ARS", "CAD", "JPY", "CHF"]);
 const CACHE_TTL = 60_000;
+const DAILY_RATES_CACHE_TTL = 60 * 60_000;
 const ratesCache = new MemoryCache<CurrencyRates>();
 const historyCache = new MemoryCache<CurrencyHistory>();
 
@@ -21,6 +22,12 @@ type CurrencyRates = {
     base: string;
     rates: Record<string, { rate: number; changePercent: number | null; name: string | null }>;
     updatedAt: string;
+    source: "awesomeapi" | "daily-fallback";
+};
+
+type DailyCurrencyRates = {
+    date: string;
+    usd?: Record<string, number>;
 };
 
 export type CurrencyHistory = {
@@ -59,6 +66,35 @@ async function currentBrlRates(currencies: string[]) {
     ] as const));
 }
 
+async function fetchDailyUsdRates(): Promise<DailyCurrencyRates> {
+    const response = await fetch("https://latest.currency-api.pages.dev/v1/currencies/usd.json", {
+        signal: AbortSignal.timeout(8_000),
+        headers: { accept: "application/json" }
+    });
+    if (!response.ok) throw new HttpError(502, `O provedor alternativo de câmbio respondeu com erro (${response.status}).`);
+    const result = await response.json() as DailyCurrencyRates;
+    if (!result.date || !result.usd) throw new HttpError(502, "O provedor alternativo não retornou cotações válidas.");
+    return result;
+}
+
+function getRatesFromDailyFallback(base: string, symbols: string[], usdRates: Record<string, number>) {
+    const baseRate = usdRates[base.toLowerCase()];
+    if (typeof baseRate !== "number" || !Number.isFinite(baseRate) || baseRate <= 0) {
+        throw new HttpError(502, `O provedor alternativo não retornou cotação para ${base}.`);
+    }
+    return Object.fromEntries(symbols.map(currency => {
+        const currencyRate = usdRates[currency.toLowerCase()];
+        if (typeof currencyRate !== "number" || !Number.isFinite(currencyRate) || currencyRate <= 0) {
+            throw new HttpError(502, `O provedor alternativo não retornou cotação para ${currency}.`);
+        }
+        return [currency, {
+            rate: baseRate / currencyRate,
+            changePercent: null,
+            name: null
+        }];
+    }));
+}
+
 export async function getCurrencyRates(baseInput: string, symbolsInput: string[]) {
     const base = validateCurrency(baseInput);
     const symbols = [...new Set(symbolsInput.map(validateCurrency).filter(symbol => symbol !== base))];
@@ -67,26 +103,42 @@ export async function getCurrencyRates(baseInput: string, symbolsInput: string[]
     if (cached) return cached;
 
     const currencies = [...new Set([base, ...symbols])];
-    const quotes = await currentBrlRates(currencies);
-    const brlRates = new Map([...quotes].map(([currency, quote]) => [currency, Number(quote?.bid)]));
-    const baseBrl = brlRates.get(base);
-    if (!baseBrl || !Number.isFinite(baseBrl) || baseBrl <= 0) {
-        throw new HttpError(502, "Não foi possível obter a cotação da moeda base.");
-    }
-    const rates = Object.fromEntries(symbols.map(currency => {
-        const quote = quotes.get(currency);
-        const brlRate = brlRates.get(currency);
-        if (!quote || !brlRate || !Number.isFinite(brlRate)) {
-            throw new HttpError(502, `Não foi possível obter a cotação de ${currency}.`);
+    let result: CurrencyRates;
+    try {
+        const quotes = await currentBrlRates(currencies);
+        const brlRates = new Map([...quotes].map(([currency, quote]) => [currency, Number(quote?.bid)]));
+        const baseBrl = brlRates.get(base);
+        if (!baseBrl || !Number.isFinite(baseBrl) || baseBrl <= 0) {
+            throw new HttpError(502, "Não foi possível obter a cotação da moeda base.");
         }
-        return [currency, {
-            rate: brlRate / baseBrl,
-            changePercent: Number.isFinite(Number(quote.pctChange)) ? Number(quote.pctChange) : null,
-            name: quote.name || null
-        }];
-    }));
-    const result = { base, rates, updatedAt: new Date().toISOString() };
-    ratesCache.set(cacheKey, result, CACHE_TTL);
+        const rates = Object.fromEntries(symbols.map(currency => {
+            const quote = quotes.get(currency);
+            const brlRate = brlRates.get(currency);
+            if (!quote || !brlRate || !Number.isFinite(brlRate)) {
+                throw new HttpError(502, `Não foi possível obter a cotação de ${currency}.`);
+            }
+            return [currency, {
+                rate: brlRate / baseBrl,
+                changePercent: Number.isFinite(Number(quote.pctChange)) ? Number(quote.pctChange) : null,
+                name: quote.name || null
+            }];
+        }));
+        result = { base, rates, updatedAt: new Date().toISOString(), source: "awesomeapi" };
+    } catch (primaryError) {
+        try {
+            const fallback = await fetchDailyUsdRates();
+            result = {
+                base,
+                rates: getRatesFromDailyFallback(base, symbols, fallback.usd || {}),
+                updatedAt: new Date(`${fallback.date}T00:00:00.000Z`).toISOString(),
+                source: "daily-fallback"
+            };
+        } catch (fallbackError) {
+            console.error("All currency rate providers failed", { primaryError, fallbackError });
+            throw new HttpError(502, "Não foi possível obter cotações nos provedores de câmbio disponíveis.");
+        }
+    }
+    ratesCache.set(cacheKey, result, result.source === "daily-fallback" ? DAILY_RATES_CACHE_TTL : CACHE_TTL);
     return result;
 }
 
@@ -108,21 +160,48 @@ export async function getCurrencyHistory(baseInput: string, quoteInput: string, 
         return sameRate;
     }
 
-    const quoteHistory = await dailyBrlHistory(quote, safeDays);
-    const baseHistory = await dailyBrlHistory(base, safeDays);
-    const baseByDate = new Map(baseHistory.map(item => [
-        new Date(Number(item.timestamp) * 1000).toISOString().slice(0, 10),
-        Number(item.bid)
-    ]));
-    const points = quoteHistory.flatMap(item => {
-        const date = item.timestamp ? new Date(Number(item.timestamp) * 1000).toISOString().slice(0, 10) : "";
-        const quoteBrl = Number(item.bid);
-        const baseBrl = base === "BRL" ? 1 : baseByDate.get(date);
-        return date && baseBrl && Number.isFinite(quoteBrl)
-            ? [{ date, rate: quoteBrl / baseBrl }]
-            : [];
-    }).sort((a, b) => a.date.localeCompare(b.date));
-    const result = { base, quote, points };
+    let result: CurrencyHistory;
+    try {
+        const quoteHistory = await dailyBrlHistory(quote, safeDays);
+        const baseHistory = await dailyBrlHistory(base, safeDays);
+        const baseByDate = new Map(baseHistory.map(item => [
+            new Date(Number(item.timestamp) * 1000).toISOString().slice(0, 10),
+            Number(item.bid)
+        ]));
+        const points = quoteHistory.flatMap(item => {
+            const date = item.timestamp ? new Date(Number(item.timestamp) * 1000).toISOString().slice(0, 10) : "";
+            const quoteBrl = Number(item.bid);
+            const baseBrl = base === "BRL" ? 1 : baseByDate.get(date);
+            return date && baseBrl && Number.isFinite(quoteBrl)
+                ? [{ date, rate: quoteBrl / baseBrl }]
+                : [];
+        }).sort((a, b) => a.date.localeCompare(b.date));
+        result = { base, quote, points };
+    } catch (primaryError) {
+        try {
+            const end = new Date();
+            const start = new Date(end);
+            start.setDate(start.getDate() - safeDays);
+            const dateRange = `${start.toISOString().slice(0, 10)}..${end.toISOString().slice(0, 10)}`;
+            const response = await fetch(
+                `https://api.frankfurter.app/${dateRange}?from=${base}&to=${quote}`,
+                { signal: AbortSignal.timeout(8_000), headers: { accept: "application/json" } }
+            );
+            if (!response.ok) throw new HttpError(502, `O provedor alternativo de histórico respondeu com erro (${response.status}).`);
+            const data = await response.json() as { rates?: Record<string, Record<string, number>> };
+            const points = Object.entries(data.rates || {}).flatMap(([date, dailyRates]) => {
+                const rate = dailyRates[quote];
+                return typeof rate === "number" && Number.isFinite(rate) && rate > 0
+                    ? [{ date, rate: 1 / rate }]
+                    : [];
+            }).sort((a, b) => a.date.localeCompare(b.date));
+            if (!points.length) throw new HttpError(502, "O provedor alternativo não retornou histórico para este par de moedas.");
+            result = { base, quote, points };
+        } catch (fallbackError) {
+            console.error("All currency history providers failed", { primaryError, fallbackError });
+            throw new HttpError(502, "Não foi possível obter o histórico nos provedores de câmbio disponíveis.");
+        }
+    }
     historyCache.set(cacheKey, result, CACHE_TTL);
     return result;
 }

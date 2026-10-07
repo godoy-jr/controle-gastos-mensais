@@ -96,7 +96,13 @@ export default function CurrencyPanel({ financeSummary }) {
         <article className="panel currency-panel">
             <div className="panel-heading">
                 <div><span className="eyebrow dark">Mercado de moedas</span><h2>Câmbio e conversor</h2></div>
-                {rates ? <span className="market-status">Atualizado {new Date(rateUpdatedAt || rates.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · atualização a cada minuto</span> : null}
+                {rates ? (
+                    <span className="market-status">
+                        {rates.source === "daily-fallback"
+                            ? `Referência diária · ${new Date(rateUpdatedAt || rates.updatedAt).toLocaleDateString("pt-BR")}`
+                            : `Atualizado ${new Date(rateUpdatedAt || rates.updatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · consulta a cada minuto`}
+                    </span>
+                ) : null}
             </div>
             <div className="currency-converter">
                 <label>Você converte

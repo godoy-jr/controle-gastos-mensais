@@ -123,8 +123,8 @@ Em ambientes publicados, aplique migrations existentes com `npm run db:migrate:d
 | `GET` | `/api/transactions/summary?month=AAAA-MM` | JWT | Resumo mensal |
 | `PATCH`, `DELETE` | `/api/transactions/:id` | JWT | Atualizar/remover movimentação |
 | `GET`, `POST` | `/api/transactions/categories` | JWT | Listar/criar categorias da conta |
-| `GET` | `/api/currencies?base=BRL&symbols=USD,EUR` | Público | Câmbio via AwesomeAPI (cache de 60 s) |
-| `GET` | `/api/currencies/history?base=BRL&quote=USD&days=30` | Público | Histórico de câmbio |
+| `GET` | `/api/currencies?base=BRL&symbols=USD,EUR` | Público | Câmbio via AwesomeAPI (cache de 60 s); usa referência diária alternativa quando o provedor principal está indisponível |
+| `GET` | `/api/currencies/history?base=BRL&quote=USD&days=30` | Público | Histórico de câmbio; usa Frankfurter como alternativa para pares suportados |
 | `GET` | `/api/news?category=economy` | Público | Feed RSS por categoria (cache de 10 min) |
 | `POST` | `/api/assistant/chat` | JWT | Responder com Gemini usando pergunta e resumo agregado |
 
