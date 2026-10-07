@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { getB3Quote, searchB3Tickers } from "./marketApi.js";
+import AssetLogo from "./components/AssetLogo.jsx";
 
 const AssetPriceChart = lazy(() => import("./components/AssetPriceChart.jsx"));
 const PORTFOLIO_KEY = "fluxo.portfolio";
@@ -197,7 +198,10 @@ export default function MarketPortfolio() {
                             <div className="ticker-suggestions" role="listbox" aria-label="Ativos encontrados">
                                 {suggestions.map(item => (
                                     <button key={item.symbol} type="button" role="option" aria-selected="false" onClick={() => chooseTicker(item)}>
-                                        <span><strong>{item.symbol}</strong><small>{item.name} · {assetTypeLabel(item.assetType)}</small></span>
+                                        <span className="ticker-result">
+                                            <AssetLogo symbol={item.symbol} src={item.logoUrl} />
+                                            <span><strong>{item.symbol}</strong><small>{item.name} · {assetTypeLabel(item.assetType)}</small></span>
+                                        </span>
                                         <strong>{money(item.price)}</strong>
                                     </button>
                                 ))}

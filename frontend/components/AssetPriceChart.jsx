@@ -8,6 +8,7 @@ import {
     XAxis,
     YAxis
 } from "recharts";
+import AssetLogo from "./AssetLogo.jsx";
 import { getB3History } from "../marketApi.js";
 
 const periods = [
@@ -81,7 +82,7 @@ export default function AssetPriceChart({ ticker }) {
         <section className="asset-detail-panel" aria-label={`Detalhes de ${ticker.symbol}`}>
             <div className="asset-detail-header">
                 <div className="asset-identity">
-                    {ticker.logoUrl ? <img src={ticker.logoUrl} alt="" loading="lazy" /> : <span className="asset-symbol-mark">{ticker.symbol.slice(0, 1)}</span>}
+                    <AssetLogo symbol={ticker.symbol} src={ticker.logoUrl} />
                     <div>
                         <h3>{ticker.symbol}<span> · B3</span></h3>
                         <p>{quote?.name || ticker.name}</p>
