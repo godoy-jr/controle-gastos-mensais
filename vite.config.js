@@ -5,6 +5,11 @@ export default defineConfig({
     root: "frontend",
     base: "./",
     plugins: [react()],
+    server: {
+        proxy: {
+            "/api": "http://localhost:3001"
+        }
+    },
     build: {
         outDir: "dist",
         emptyOutDir: true

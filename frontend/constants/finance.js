@@ -16,7 +16,10 @@ export const PAGE_DETAILS = {
     transactions: ["Movimentações", "Registre e organize suas entradas e saídas."],
     planning: ["Planejamento", "Defina limites e acompanhe suas metas mensais."],
     investments: ["Investimentos", "Acompanhe sua carteira e as cotações da B3."],
-    analytics: ["Análises", "Entenda seus hábitos e a evolução das suas finanças."]
+    analytics: ["Análises", "Entenda seus hábitos e a evolução das suas finanças."],
+    currencies: ["Câmbio", "Acompanhe moedas e consulte conversões indicativas."],
+    news: ["Notícias", "Leia notícias diárias do mercado financeiro."],
+    assistant: ["Assistente", "Tire dúvidas sobre organização financeira."]
 };
 
 export const THEME_OPTIONS = [

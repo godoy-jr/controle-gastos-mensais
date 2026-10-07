@@ -1,10 +1,9 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { PAGE_DETAILS } from "./constants/finance.js";
 import Sidebar from "./components/Sidebar.jsx";
 import PageHeader from "./components/PageHeader.jsx";
 import DashboardPages from "./components/DashboardPages.jsx";
 import useFinanceData from "./hooks/useFinanceData.js";
-import useFinanceCharts from "./hooks/useFinanceCharts.js";
 import useGoalForm from "./hooks/useGoalForm.js";
 import useThemePreferences from "./hooks/useThemePreferences.js";
 import useTransactionForm from "./hooks/useTransactionForm.js";
@@ -23,22 +22,6 @@ function App() {
         month: financeData.month
     });
     const themePreferences = useThemePreferences();
-    const flowCanvas = useRef(null);
-    const categoryCanvas = useRef(null);
-    const evolutionCanvas = useRef(null);
-
-    useFinanceCharts({
-        flowCanvas,
-        categoryCanvas,
-        evolutionCanvas,
-        transactions: financeData.transactions,
-        totals: financeData.totals,
-        categoryExpenses: financeData.categoryExpenses,
-        month: financeData.month,
-        resolvedTheme: themePreferences.resolvedTheme,
-        activePage
-    });
-
     const exportCsv = () => {
         if (!financeData.visibleTransactions.length) {
             transactionForm.setFeedback("Não há movimentações para exportar.");
@@ -69,7 +52,6 @@ function App() {
                     }}
                     transactionForm={transactionForm}
                     goalForm={goalForm}
-                    charts={{ flowCanvas, categoryCanvas, evolutionCanvas }}
                     onExportCsv={exportCsv}
                 />
             </main>

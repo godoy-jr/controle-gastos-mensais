@@ -25,18 +25,6 @@ export function totalsForMonth(transactions, month) {
         }), { income: 0, expense: 0 });
 }
 
-export function prepareCanvas(canvas) {
-    const ratio = window.devicePixelRatio || 1;
-    const width = canvas.clientWidth || 520;
-    const height = 260;
-    canvas.width = width * ratio;
-    canvas.height = height * ratio;
-    const context = canvas.getContext("2d");
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.clearRect(0, 0, width, height);
-    return { context, width };
-}
-
 export function comparisonText(current, previous, label) {
     return previous
         ? `${current >= previous ? "↑" : "↓"} ${Math.abs(Math.round(((current - previous) / previous) * 100))}% vs. mês anterior`

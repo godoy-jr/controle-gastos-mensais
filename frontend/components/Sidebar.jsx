@@ -3,7 +3,10 @@ const navigationItems = [
     { id: "transactions", icon: "↕", label: "Movimentações" },
     { id: "planning", icon: "◎", label: "Planejamento" },
     { id: "investments", icon: "▥", label: "Investimentos" },
-    { id: "analytics", icon: "⌁", label: "Análises" }
+    { id: "analytics", icon: "⌁", label: "Análises" },
+    { id: "currencies", icon: "↔", label: "Câmbio" },
+    { id: "news", icon: "▤", label: "Notícias" },
+    { id: "assistant", icon: "✦", label: "Assistente" }
 ];
 
 export default function Sidebar({ activePage, onNavigate }) {
