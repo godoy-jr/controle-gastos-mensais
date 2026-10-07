@@ -142,3 +142,15 @@ O feed de notícias usa RSS de pesquisa do Google Notícias e direciona para o v
 ### Publicação
 
 GitHub Pages publica apenas o frontend estático; API e PostgreSQL precisam de hospedagem própria. Configure `FRONTEND_ORIGIN` no backend com a origem exata do site e a variável de repositório `VITE_API_BASE_URL` (GitHub → Settings → Secrets and variables → Actions → Variables) com a URL HTTPS da API. O workflow injeta essa variável no build. Configure `DATABASE_URL`, `JWT_SECRET` e `GEMINI_API_KEY` exclusivamente no provedor do backend.
+
+#### Publicar a API no Render
+
+O arquivo `render.yaml` define um serviço web e um PostgreSQL gratuitos para teste. Para iniciar o deploy:
+
+1. Entre no Render com sua conta e conecte este repositório como um **Blueprint**: [Render Blueprints](https://dashboard.render.com/blueprints).
+2. Revise os recursos e confirme a criação. O Render gera `JWT_SECRET`, conecta o banco e executa `prisma migrate deploy` ao iniciar a API.
+3. Na configuração do serviço `fluxo-api`, adicione `GEMINI_API_KEY` como variável secreta para habilitar o chat. Nunca coloque essa chave no GitHub Pages.
+4. Depois do deploy, teste `https://<URL-do-serviço>/api/health`; a resposta deve ser `{"status":"ok"}`.
+5. No GitHub, abra **Settings → Secrets and variables → Actions → Variables** e crie `VITE_API_BASE_URL` com a URL HTTPS do serviço (sem `/api` no final). Rode novamente o workflow **Publicar aplicação no GitHub Pages** em **Actions → Run workflow**.
+
+O plano gratuito do Render é somente para demonstração: serviços podem hibernar e o banco de dados gratuito expira. Não use esse banco para guardar dados financeiros importantes ou de produção. O primeiro acesso após a hibernação pode demorar. A interface financeira existente continua usando `localStorage`; a API autenticada ainda não sincroniza automaticamente essas movimentações.
