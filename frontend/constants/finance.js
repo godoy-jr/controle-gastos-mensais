@@ -15,7 +15,7 @@ export const PAGE_DETAILS = {
     overview: ["Visão geral", "Acompanhe seu dinheiro e veja como está o mês."],
     transactions: ["Movimentações", "Registre e organize suas entradas e saídas."],
     planning: ["Planejamento", "Defina limites e acompanhe suas metas mensais."],
-    investments: ["Investimentos", "Acompanhe sua carteira e as cotações da B3."],
+    investments: ["Investimentos", "Explore ativos da B3 e acompanhe o desempenho da sua carteira."],
     analytics: ["Análises", "Entenda seus hábitos e a evolução das suas finanças."],
     currencies: ["Câmbio", "Acompanhe moedas e consulte conversões indicativas."],
     news: ["Notícias", "Leia notícias diárias do mercado financeiro."],
