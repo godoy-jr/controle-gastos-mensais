@@ -91,6 +91,16 @@ export default function CurrencyPanel({ financeSummary }) {
         convertedAmount,
         updatedAt: rateUpdatedAt
     };
+    const convertedDisplay = convertedAmount === null
+        ? "—"
+        : selectedRate < 0.01
+            ? new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+                minimumFractionDigits: 4,
+                maximumFractionDigits: 6
+            }).format(convertedAmount)
+            : formatMoney(convertedAmount);
 
     return (
         <article className="panel currency-panel">
@@ -116,7 +126,7 @@ export default function CurrencyPanel({ financeSummary }) {
                 <span className="currency-equals" aria-hidden="true">→</span>
                 <div className="currency-result">
                     <span>Valor aproximado em BRL</span>
-                    <strong>{loading ? "Carregando…" : convertedAmount === null ? "—" : formatMoney(convertedAmount)}</strong>
+                    <strong>{loading ? "Carregando…" : convertedDisplay}</strong>
                 </div>
             </div>
             {error ? <p className="api-error" role="alert">{error}</p> : null}
