@@ -5,6 +5,7 @@ const API_ROOT = "https://economia.awesomeapi.com.br/json";
 const CURRENCIES = new Set(["BRL", "USD", "EUR", "GBP", "ARS", "CAD", "JPY", "CHF"]);
 const CACHE_TTL = 60_000;
 const DAILY_RATES_CACHE_TTL = 60 * 60_000;
+const DAILY_HISTORY_CACHE_TTL = 60 * 60_000;
 const ratesCache = new MemoryCache<CurrencyRates>();
 const historyCache = new MemoryCache<CurrencyHistory>();
 
@@ -147,6 +148,55 @@ async function dailyBrlHistory(currency: string, days: number) {
     return fetchAwesome<AwesomeQuote[]>(`daily/${currency}-BRL/${days}`);
 }
 
+async function fetchArchivedUsdRates(date: string): Promise<DailyCurrencyRates | null> {
+    const primaryUrl = `https://${date}.currency-api.pages.dev/v1/currencies/usd.json`;
+    let response = await fetch(primaryUrl, {
+        signal: AbortSignal.timeout(8_000),
+        headers: { accept: "application/json" }
+    });
+    if (!response.ok) {
+        const fallbackUrl = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/usd.json`;
+        response = await fetch(fallbackUrl, {
+            signal: AbortSignal.timeout(8_000),
+            headers: { accept: "application/json" }
+        });
+    }
+    if (response.status === 404) return null;
+    if (!response.ok) throw new HttpError(502, `O provedor de histórico diário respondeu com erro (${response.status}) para ${date}.`);
+    const result = await response.json() as DailyCurrencyRates;
+    if (result.date !== date || !result.usd) {
+        throw new HttpError(502, `O provedor não retornou cotações válidas para ${date}.`);
+    }
+    return result;
+}
+
+async function archivedCurrencyHistory(base: string, quote: string, days: number): Promise<CurrencyHistory> {
+    const today = new Date();
+    const dates = Array.from({ length: days + 1 }, (_, index) => {
+        const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - days + index));
+        return date.toISOString().slice(0, 10);
+    });
+    const points: CurrencyHistory["points"] = [];
+    for (let index = 0; index < dates.length; index += 6) {
+        const archivedRates = await Promise.all(dates.slice(index, index + 6).map(fetchArchivedUsdRates));
+        archivedRates.forEach((dailyRates, offset) => {
+            if (!dailyRates?.usd) return;
+            const date = dates[index + offset];
+            if (!date) return;
+            const baseUsdRate = dailyRates.usd[base.toLowerCase()];
+            const quoteUsdRate = dailyRates.usd[quote.toLowerCase()];
+            if (
+                typeof baseUsdRate === "number" && Number.isFinite(baseUsdRate) && baseUsdRate > 0 &&
+                typeof quoteUsdRate === "number" && Number.isFinite(quoteUsdRate) && quoteUsdRate > 0
+            ) {
+                points.push({ date, rate: baseUsdRate / quoteUsdRate });
+            }
+        });
+    }
+    if (!points.length) throw new HttpError(502, "O provedor alternativo não retornou histórico para este par de moedas.");
+    return { base, quote, points };
+}
+
 export async function getCurrencyHistory(baseInput: string, quoteInput: string, days: number): Promise<CurrencyHistory> {
     const base = validateCurrency(baseInput);
     const quote = validateCurrency(quoteInput);
@@ -198,10 +248,14 @@ export async function getCurrencyHistory(baseInput: string, quoteInput: string, 
             if (!points.length) throw new HttpError(502, "O provedor alternativo não retornou histórico para este par de moedas.");
             result = { base, quote, points };
         } catch (fallbackError) {
-            console.error("All currency history providers failed", { primaryError, fallbackError });
-            throw new HttpError(502, "Não foi possível obter o histórico nos provedores de câmbio disponíveis.");
+            try {
+                result = await archivedCurrencyHistory(base, quote, safeDays);
+            } catch (archiveError) {
+                console.error("All currency history providers failed", { primaryError, fallbackError, archiveError });
+                throw new HttpError(502, "Não foi possível obter o histórico nos provedores de câmbio disponíveis.");
+            }
         }
     }
-    historyCache.set(cacheKey, result, CACHE_TTL);
+    historyCache.set(cacheKey, result, result.points.length ? DAILY_HISTORY_CACHE_TTL : CACHE_TTL);
     return result;
 }
