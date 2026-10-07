@@ -82,16 +82,15 @@ export default function CurrencyPanel({ financeSummary }) {
         const value = Number(amount);
         return Number.isFinite(value) && selectedRate ? value * selectedRate : null;
     }, [amount, selectedRate]);
-    const marketContext = selectedRate
-        ? {
-            base: currency,
-            quote: "BRL",
-            rate: selectedRate,
-            amount: Number.isFinite(Number(amount)) ? Number(amount) : null,
-            convertedAmount,
-            updatedAt: rateUpdatedAt
-        }
-        : undefined;
+    const numericAmount = Number(amount);
+    const marketContext = {
+        base: currency,
+        quote: "BRL",
+        rate: selectedRate ?? null,
+        amount: Number.isFinite(numericAmount) ? numericAmount : null,
+        convertedAmount,
+        updatedAt: rateUpdatedAt
+    };
 
     return (
         <article className="panel currency-panel">

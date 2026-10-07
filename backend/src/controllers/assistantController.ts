@@ -17,7 +17,7 @@ const chatSchema = z.object({
     marketContext: z.object({
         base: z.string().trim().length(3),
         quote: z.string().trim().length(3),
-        rate: z.number().positive().max(1_000_000),
+        rate: z.number().positive().max(1_000_000).nullable(),
         amount: z.number().nonnegative().max(1_000_000_000_000).nullable(),
         convertedAmount: z.number().nonnegative().max(1_000_000_000_000).nullable(),
         updatedAt: z.string().max(40)

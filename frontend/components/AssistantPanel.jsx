@@ -85,7 +85,7 @@ export default function AssistantPanel({ financeSummary, marketContext, contextL
             </div>
             {!token ? (
                 <div className="assistant-login">
-                    <p>Entre ou crie uma conta para conversar com o assistente. {marketContext ? "A cotação indicativa exibida nesta tela será enviada junto à pergunta." : "Quando você enviar uma pergunta, apenas um resumo agregado dos últimos 30 dias será enviado para gerar a resposta."}</p>
+                    <p>Entre ou crie uma conta para conversar com o assistente. {marketContext ? `O par ${marketContext.base}/BRL será enviado junto à pergunta, com a cotação indicativa se estiver disponível.` : "Quando você enviar uma pergunta, apenas um resumo agregado dos últimos 30 dias será enviado para gerar a resposta."}</p>
                     <div className="assistant-auth-tabs" role="group" aria-label="Acesso à conta">
                         <button className={authMode === "login" ? "active" : ""} type="button" onClick={() => setAuthMode("login")}>Entrar</button>
                         <button className={authMode === "register" ? "active" : ""} type="button" onClick={() => setAuthMode("register")}>Criar conta</button>

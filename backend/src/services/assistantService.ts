@@ -20,7 +20,7 @@ export type FinanceSummary = {
 export type MarketContext = {
     base: string;
     quote: string;
-    rate: number;
+    rate: number | null;
     amount: number | null;
     convertedAmount: number | null;
     updatedAt: string;
@@ -74,7 +74,7 @@ export async function askFinancialAssistant(
             body: JSON.stringify({
                 systemInstruction: {
                     parts: [{
-                        text: "Você é um assistente educacional de finanças pessoais e câmbio. Responda em português do Brasil, com clareza e sem prometer retornos. Use apenas o resumo financeiro fornecido para falar dos dados pessoais e a cotação indicativa fornecida para falar do câmbio; não invente cotações nem afirme que são em tempo real sem considerar o horário de atualização. Se não houver dados suficientes, diga isso. Não peça credenciais, dados bancários ou informações sensíveis. Não forneça recomendação individual de compra ou venda de ativos."
+                        text: "Você é um assistente educacional de finanças pessoais e câmbio. Responda em português do Brasil, com clareza e sem prometer retornos. Use apenas o resumo financeiro fornecido para falar dos dados pessoais e a cotação indicativa fornecida para falar do câmbio; se a taxa for nula, informe que a cotação atual não está disponível e não invente um valor. Não afirme que as taxas são em tempo real sem considerar o horário de atualização. Se não houver dados suficientes, diga isso. Não peça credenciais, dados bancários ou informações sensíveis. Não forneça recomendação individual de compra ou venda de ativos."
                     }]
                 },
                 contents: [{

@@ -44,10 +44,19 @@ async function fetchAwesome<T>(path: string): Promise<T> {
     return response.json() as Promise<T>;
 }
 
-async function currentBrlRate(currency: string): Promise<AwesomeQuote | null> {
-    if (currency === "BRL") return { code: "BRL", codein: "BRL", bid: "1.0", ask: "1.0", pctChange: "0" };
-    const result = await fetchAwesome<Record<string, AwesomeQuote>>(`last/${currency}-BRL`);
-    return Object.values(result)[0] || null;
+async function currentBrlRates(currencies: string[]) {
+    const foreignCurrencies = currencies.filter(currency => currency !== "BRL");
+    const quotes = foreignCurrencies.length
+        ? Object.values(await fetchAwesome<Record<string, AwesomeQuote>>(
+            `last/${foreignCurrencies.map(currency => `${currency}-BRL`).join(",")}`
+        ))
+        : [];
+    return new Map(currencies.map(currency => [
+        currency,
+        currency === "BRL"
+            ? { code: "BRL", codein: "BRL", bid: "1.0", ask: "1.0", pctChange: "0" }
+            : quotes.find(quote => quote.code === currency && quote.codein === "BRL") || null
+    ] as const));
 }
 
 export async function getCurrencyRates(baseInput: string, symbolsInput: string[]) {
@@ -58,14 +67,14 @@ export async function getCurrencyRates(baseInput: string, symbolsInput: string[]
     if (cached) return cached;
 
     const currencies = [...new Set([base, ...symbols])];
-    const quotes = await Promise.all(currencies.map(async currency => [currency, await currentBrlRate(currency)] as const));
-    const brlRates = new Map(quotes.map(([currency, quote]) => [currency, Number(quote?.bid)]));
+    const quotes = await currentBrlRates(currencies);
+    const brlRates = new Map([...quotes].map(([currency, quote]) => [currency, Number(quote?.bid)]));
     const baseBrl = brlRates.get(base);
     if (!baseBrl || !Number.isFinite(baseBrl) || baseBrl <= 0) {
         throw new HttpError(502, "Não foi possível obter a cotação da moeda base.");
     }
     const rates = Object.fromEntries(symbols.map(currency => {
-        const quote = quotes.find(([code]) => code === currency)?.[1];
+        const quote = quotes.get(currency);
         const brlRate = brlRates.get(currency);
         if (!quote || !brlRate || !Number.isFinite(brlRate)) {
             throw new HttpError(502, `Não foi possível obter a cotação de ${currency}.`);
@@ -99,10 +108,8 @@ export async function getCurrencyHistory(baseInput: string, quoteInput: string, 
         return sameRate;
     }
 
-    const [quoteHistory, baseHistory] = await Promise.all([
-        dailyBrlHistory(quote, safeDays),
-        dailyBrlHistory(base, safeDays)
-    ]);
+    const quoteHistory = await dailyBrlHistory(quote, safeDays);
+    const baseHistory = await dailyBrlHistory(base, safeDays);
     const baseByDate = new Map(baseHistory.map(item => [
         new Date(Number(item.timestamp) * 1000).toISOString().slice(0, 10),
         Number(item.bid)
